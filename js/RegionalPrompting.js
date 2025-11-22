@@ -203,7 +203,7 @@ function addRegionalPrompterCanvas(node, app) {
 		computeCanvasSize(node, node.size);
 	}, 100);
 
-	return { minWidth: 200, minHeight: 200, widget }
+	return { minWidth: 200, minHeight: 600, widget }  // Increased to accommodate canvas + widgets
 }
 
 app.registerExtension({
@@ -230,6 +230,15 @@ app.registerExtension({
 
 				// Add canvas after the prompt inputs
 				addRegionalPrompterCanvas(this, app)
+
+				// Limit height of multiline prompt widgets to make node more compact
+				const promptNames = ["background_prompt", "region1_prompt", "region2_prompt", "region3_prompt", "region4_prompt"];
+				for (const w of this.widgets) {
+					if (promptNames.includes(w.name) && w.inputEl) {
+						w.inputEl.style.maxHeight = "60px";  // ~3 lines of text
+						w.inputEl.style.overflowY = "auto";
+					}
+				}
 
 				// Find where index widget should be inserted (after canvas)
 				const indexWidgetStartPos = this.widgets.length;
@@ -313,6 +322,15 @@ app.registerExtension({
 
 				// Add canvas after the prompt inputs
 				addRegionalPrompterCanvas(this, app)
+
+				// Limit height of multiline prompt widgets to make node more compact
+				const promptNames = ["background_prompt", "region1_prompt", "region2_prompt", "region3_prompt", "region4_prompt"];
+				for (const w of this.widgets) {
+					if (promptNames.includes(w.name) && w.inputEl) {
+						w.inputEl.style.maxHeight = "60px";  // ~3 lines of text
+						w.inputEl.style.overflowY = "auto";
+					}
+				}
 
 				// Find where index widget should be inserted (after canvas)
 				const indexWidgetStartPos = this.widgets.length;

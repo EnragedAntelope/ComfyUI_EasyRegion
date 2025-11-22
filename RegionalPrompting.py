@@ -6,7 +6,7 @@ import torch
 from nodes import MAX_RESOLUTION
 import folder_paths
 
-class RegionalPrompterSimple:
+class EasyRegionSimple:
     """
     ALL-IN-ONE regional prompting with inline text inputs!
 
@@ -55,7 +55,7 @@ class RegionalPrompterSimple:
     RETURN_TYPES = ("CONDITIONING",)
     RETURN_NAMES = ("conditioning",)
     FUNCTION = "encode_regions"
-    CATEGORY = "RegionalPrompter"
+    CATEGORY = "EasyRegion"
     DESCRIPTION = """🎨 ALL-IN-ONE Regional Prompting (EASY MODE!)
 
 Just type your prompts and draw boxes - that's it!
@@ -164,14 +164,14 @@ Compatible: SD1.5, SD2.x, SDXL"""
         return (c,)
 
 
-class RegionalPrompterFlux:
+class EasyRegionMask:
     """
-    ALL-IN-ONE regional prompting for FLUX/CHROMA with inline text inputs!
+    ALL-IN-ONE regional prompting with inline text inputs!
 
     Just connect your CLIP model, type prompts directly, and draw boxes.
-    Automatically converts to masks optimized for Flux!
+    Uses mask-based conditioning for maximum model compatibility.
 
-    Compatible with: Flux, Chroma, SD3, SD3.5 (mask-based conditioning)
+    Compatible with modern mask-based models (see README for model-specific tips)
     """
 
     @classmethod
@@ -198,7 +198,7 @@ class RegionalPrompterFlux:
                     "tooltip": "Enable feathering at region edges - recommended ON"
                 }),
                 "background_prompt": ("STRING", {
-                    "default": "photo of a city street, high quality",
+                    "default": "photo of empty city street at night, high quality",
                     "multiline": True,
                     "tooltip": "Scene description (applies to entire image as base)"
                 }),
@@ -209,55 +209,55 @@ class RegionalPrompterFlux:
                     "min": 0.0,
                     "max": 10.0,
                     "step": 0.1,
-                    "tooltip": "Background conditioning strength (0.3-0.7 for Flux, lower = regions show more)"
+                    "tooltip": "Background conditioning strength (lower = regions show more, try 0.3-0.7)"
                 }),
                 "region1_prompt": ("STRING", {
-                    "default": "red sports car",
+                    "default": "red sports car on left side of image (left third of image)",
                     "multiline": True,
-                    "tooltip": "Region 1 - First region/box (see canvas below)"
+                    "tooltip": "Region 1 - TIP: Include spatial location in prompt (e.g. 'left side', 'top right')"
                 }),
                 "region1_strength": ("FLOAT", {
                     "default": 2.5,
                     "min": 0.0,
                     "max": 10.0,
                     "step": 0.1,
-                    "tooltip": "Region 1 strength (2-4 for Flux, too high = soft/lose details)"
+                    "tooltip": "Region 1 strength (start with 2-4, adjust if region doesn't show or is too soft)"
                 }),
                 "region2_prompt": ("STRING", {
-                    "default": "giraffe wearing sunglasses",
+                    "default": "giraffe wearing sunglasses on right side of image (last third of image)",
                     "multiline": True,
-                    "tooltip": "Region 2 - Second region/box (see canvas below)"
+                    "tooltip": "Region 2 - TIP: Include spatial location in prompt (e.g. 'right third', 'bottom left')"
                 }),
                 "region2_strength": ("FLOAT", {
                     "default": 3.5,
                     "min": 0.0,
                     "max": 10.0,
                     "step": 0.1,
-                    "tooltip": "Region 2 strength (3-5 for Flux, too high = soft/lose details)"
+                    "tooltip": "Region 2 strength (start with 3-5, adjust if needed)"
                 }),
                 "region3_prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
-                    "tooltip": "Region 3 - Third region/box (see canvas below)"
+                    "tooltip": "Region 3 - Optional third region"
                 }),
                 "region3_strength": ("FLOAT", {
                     "default": 4.0,
                     "min": 0.0,
                     "max": 10.0,
                     "step": 0.1,
-                    "tooltip": "Region 3 strength (3-6 for Flux, too high = soft/lose details)"
+                    "tooltip": "Region 3 strength (start with 4-6, adjust if needed)"
                 }),
                 "region4_prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
-                    "tooltip": "Region 4 - Fourth region/box (see canvas below)"
+                    "tooltip": "Region 4 - Optional fourth region"
                 }),
                 "region4_strength": ("FLOAT", {
                     "default": 4.5,
                     "min": 0.0,
                     "max": 10.0,
                     "step": 0.1,
-                    "tooltip": "Region 4 strength (4-7 for Flux, too high = soft/lose details)"
+                    "tooltip": "Region 4 strength (start with 5-7, adjust if needed)"
                 }),
             },
             "hidden": {"extra_pnginfo": "EXTRA_PNGINFO", "unique_id": "UNIQUE_ID"},
@@ -265,33 +265,32 @@ class RegionalPrompterFlux:
 
     RETURN_TYPES = ("CONDITIONING",)
     RETURN_NAMES = ("conditioning",)
-    FUNCTION = "encode_regions_flux"
-    CATEGORY = "RegionalPrompter"
-    DESCRIPTION = """Mask-based regional prompting for Flux, Chroma, SD3, SD3.5, Qwen-Image.
+    FUNCTION = "encode_regions_mask"
+    CATEGORY = "EasyRegion"
+    DESCRIPTION = """Mask-based regional prompting for modern diffusion models.
 
 Quick Start:
 1. Connect CLIP from checkpoint
 2. Set width/height to match your latent exactly
 3. Type prompts (background + regions)
-4. Adjust per-region strength (default: 2.5, 3.5, 4.0, 4.0)
+4. Adjust per-region strength (defaults: 2.5, 3.5, 4.0, 4.5)
 5. Draw/adjust boxes on canvas
-6. Use CFG 1.0 for Base Flux (no negative prompt)
 
-Tips: Increase per-region strength if regions don't show. 3-4 regions max for Flux."""
+See README for model-specific tips and recommended settings."""
 
-    def encode_regions_flux(self, clip, width, height, background_strength, soften_masks, background_prompt, region1_prompt,
+    def encode_regions_mask(self, clip, width, height, background_strength, soften_masks, background_prompt, region1_prompt,
                            extra_pnginfo, unique_id,
-                           region1_strength=5.0, region2_prompt="", region2_strength=6.0,
-                           region3_prompt="", region3_strength=7.0, region4_prompt="", region4_strength=8.0):
-        """Encode all prompts and apply mask-based regional conditioning for Flux/Chroma/SD3."""
+                           region1_strength=2.5, region2_prompt="", region2_strength=3.5,
+                           region3_prompt="", region3_strength=4.0, region4_prompt="", region4_strength=4.5):
+        """Encode all prompts and apply mask-based regional conditioning."""
 
         # Default template boxes (if workflow not saved yet)
-        # Region 1 (red sports car): left side, 400x500px starting at (100, 300)
-        # Region 2 (street vendor): right side, 350x500px starting at (560, 300)
-        # NOTE: Strength values in 'values' array are now ignored - using per-region strength inputs instead
+        # Region 1 (red sports car): left third, 300x600px starting at (50, 200)
+        # Region 2 (giraffe): right third, 300x700px starting at (674, 150)
+        # NOTE: Strength values in 'values' array are ignored - using per-region strength inputs instead
         values = [
-            [100, 300, 400, 500, 0.0],   # Region 1 - strength ignored (using region1_strength input)
-            [560, 300, 350, 500, 0.0]    # Region 2 - strength ignored (using region2_strength input)
+            [50, 200, 300, 600, 0.0],   # Region 1 - strength from region1_strength input
+            [674, 150, 300, 700, 0.0]    # Region 2 - strength from region2_strength input
         ]
 
         # Get region data from UI (overrides defaults if workflow saved)
@@ -326,11 +325,10 @@ Tips: Increase per-region strength if regions don't show. 3-4 regions max for Fl
         print(f"   Default boxes: {values}")
 
         if num_regions > 4:
-            print(f"⚠️  Warning: {num_regions} regions detected. Flux works best with 3-4 regions maximum.")
+            print(f"⚠️  Warning: {num_regions} regions detected. Most models work best with 3-4 regions maximum.")
 
         # Encode each prompt using CLIP
         # ComfyUI's CLIP object handles multi-encoder complexity internally
-        # Works for all models: Flux (2 encoders), SD3 (3 encoders), Chroma/Qwen (1 encoder), etc.
         encoded_conditionings = []
 
         for prompt in prompts:
@@ -410,7 +408,7 @@ Tips: Increase per-region strength if regions don't show. 3-4 regions max for Fl
             w_latent = max(1, w // 8)
             h_latent = max(1, h // 8)
 
-            # Create mask with Flux-optimized strength
+            # Create binary mask for region
             mask = torch.zeros((1, latent_height, latent_width), dtype=torch.float32)
 
             x_end = min(x_latent + w_latent, latent_width)
@@ -452,8 +450,7 @@ Tips: Increase per-region strength if regions don't show. 3-4 regions max for Fl
                 n[1]['set_area_to_bounds'] = False
                 combined_conditioning.append(n)
 
-        print(f"   ✅ Generated {len(combined_conditioning)} conditioning blocks")
-        print(f"   💡 Tip: For Base Flux, use CFG 1.0 with no negative prompt\n")
+        print(f"   ✅ Generated {len(combined_conditioning)} conditioning blocks\n")
 
         return (combined_conditioning,)
 

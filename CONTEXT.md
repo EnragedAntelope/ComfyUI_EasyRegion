@@ -38,12 +38,64 @@
 - **Format:** Must wrap in list: `[[cond, {"pooled_output": pooled}]]`
 - **Works:** Identical to external CLIPTextEncode nodes
 - **Benefit:** Massive UX improvement - no external nodes needed!
+- **Universal:** Same method works for ALL models (SD/SDXL/Flux/Chroma/SD3/etc.) - ComfyUI handles multi-encoder complexity internally
+
+#### Text Encoder Architectures by Model
+**CRITICAL:** Different models use different numbers and types of text encoders. ComfyUI's CLIP object handles the complexity internally, but understanding the architecture helps with debugging.
+
+| Model | # Encoders | Encoder Types | Implementation Notes |
+|-------|-----------|---------------|---------------------|
+| **SD 1.5** | 1 | CLIP-L | Standard `encode_from_tokens` |
+| **SD 2.x** | 1 | OpenCLIP-H | Standard `encode_from_tokens` |
+| **SDXL** | 2 | CLIP-L + OpenCLIP-G | Standard `encode_from_tokens` (handled internally) |
+| **Flux** ✅ | 2 | T5-XXL + CLIP-L | Standard `encode_from_tokens` (handled internally) |
+| **Chroma** ✅ | 1 | T5-XXL only | Standard `encode_from_tokens` (Flux-based but single encoder!) |
+| **SD3** | 3 | CLIP-L + CLIP-G + T5-XXL | Standard `encode_from_tokens` (multi-encoder internal) |
+| **SD3.5** | 3 | CLIP-L + CLIP-G + T5-XXL | Standard `encode_from_tokens` (multi-encoder internal) |
+| **HiDream** | 4 | CLIP-L + CLIP-G + 2× T5 variants | Standard `encode_from_tokens` (multi-encoder internal) |
+| **WAN 2.1** | 1 | UMT5-XXL | Standard `encode_from_tokens` (fp16/fp8/bf16 variants) |
+| **WAN 2.2** | 1 | UMT5-XXL + MoE | Standard `encode_from_tokens` (nf4 4-bit quantization) |
+| **Qwen-Image** | 1 | Qwen 2.5 VL (qwen_2.5_vl_7b.safetensors) | Standard `encode_from_tokens` (vision-language LLM) |
+
+**Implementation (Simplified - November 2025):**
+```python
+# Universal encoding for ALL models (1, 2, 3, or 4 encoders)
+# ComfyUI's CLIP object handles multi-encoder complexity internally
+for prompt in prompts:
+    if prompt and prompt.strip():
+        tokens = clip.tokenize(prompt)
+        cond, pooled = clip.encode_from_tokens(tokens, return_pooled=True)
+        encoded_conditionings.append([[cond, {"pooled_output": pooled}]])
+```
+
+**Critical Discovery (November 2025):**
+- ❌ **WRONG:** Using `hasattr(clip, 'encode_from_tokens_scheduled')` to detect Flux
+  - This method exists in the **base CLIP class** that ALL models inherit from
+  - Returns `True` for SD1.5, SDXL, SD3, Flux, Chroma - everything!
+  - Completely useless for model detection
+- ✅ **CORRECT:** Use standard `encode_from_tokens(return_pooled=True)` for ALL models
+  - Works universally: SD (1 encoder), SDXL (2), Flux (2), SD3 (3), HiDream (4)
+  - ComfyUI's CLIP object abstracts encoder complexity
+  - No model-specific branching needed
+- 📝 **Note:** `encode_from_tokens_scheduled` is what CLIPTextEncode uses internally, but for regional prompting without temporal effects, `encode_from_tokens` works perfectly
+
+**Key Insights:**
+- ✅ **Chroma is Flux-based architecture but uses ONLY 1 encoder** (T5-XXL, not CLIP-L+T5-XXL)
+- ✅ **SD3/SD3.5 use 3 encoders** but ComfyUI's CLIP handles it transparently
+- ✅ **HiDream uses 4 encoders** in ComfyUI (CLIP-L, CLIP-G, T5 variants)
+- ✅ **ALL models** use the same encoding method - no special cases needed
+- ⚠️ **Don't assume encoder count from architecture** - Chroma proves Flux-based ≠ dual encoder!
 
 #### JavaScript UI
 - **Loading:** Modern ComfyUI auto-loads from `/js/` folder
 - **Canvas:** Shared drawing code between area-based and mask-based nodes
 - **Grid:** 64px grid overlay helps users align to latent boundaries
 - **Color Coding:** Each region gets unique color based on index/length ratio
+- **Canvas Widget Critical Pattern:**
+  - Must set `canvas.width` and `canvas.height` attributes (not just CSS styles)
+  - CSS controls display size, attributes control internal drawing resolution
+  - Force initial size computation with `setTimeout(() => computeCanvasSize(node, node.size), 100)`
+  - Always provide fallback values for `node.canvasHeight`, `node.properties["values"]`, etc.
 
 #### Workflow Metadata
 - **Source:** `extra_pnginfo["workflow"]["nodes"]` contains node properties
@@ -259,21 +311,35 @@ except Exception as e:
 
 ## Known Issues & Workarounds
 
-### Issue: Workflow Metadata Missing
-- **Symptom:** "Workflow metadata missing" error on first run
-- **Cause:** ComfyUI doesn't populate `extra_pnginfo` until workflow saved
-- **Workaround:** Save workflow (Ctrl+S), reload page
-- **Fix:** Fallback to sensible defaults (512x512 for SD, 1024x1024 for Flux)
+### ✅ FIXED: Canvas Not Visible (November 2025)
+- **Symptom:** "Where exactly do you draw boxes? I see nothing."
+- **Cause:** Canvas element missing explicit width/height attributes, computeCanvasSize not called initially
+- **Fix:**
+  - Set canvas.width and canvas.height attributes (not just CSS styles)
+  - Force initial canvas size computation with setTimeout
+  - Added fallback dimensions (200px minimum)
+  - Added safeguards for empty values array
+- **Status:** Fixed in commit 747c881
 
-### Issue: Canvas Not Updating
-- **Symptom:** Boxes don't appear when drawn
-- **Cause:** `app.graph._nodes` reference bug in old JavaScript
-- **Fix:** Use `app.graph._nodes` consistently (fixed in modernization)
+### ✅ FIXED: Regions Not Showing (November 2025)
+- **Symptom:** Only background appears, regions (sports car, vendor) don't render
+- **Cause:** `extra_pnginfo` empty on first run (before workflow saved), no default boxes
+- **Fix:**
+  - Added default template boxes matching JavaScript defaults
+  - RegionalPrompterSimple: `[[50, 150, 200, 250, 1.0], [280, 150, 180, 250, 1.0]]`
+  - RegionalPrompterFlux: `[[100, 300, 400, 500, 1.0], [560, 300, 350, 500, 1.0]]`
+  - Boxes only used if workflow not saved yet
+- **Status:** Fixed in commit 747c881
 
-### Issue: Flux Regions Too Strong
-- **Symptom:** Harsh boundaries, over-defined regions
-- **Cause:** Mask strength set to 1.0 instead of 0.7-0.85
-- **Fix:** RegionalPrompterFlux uses 0.8 by default with `flux_optimize=True`
+### ✅ FIXED: Wrong CLIP Encoder for Chroma/Qwen (November 2025)
+- **Symptom:** mat1/mat2 tensor shape mismatch error (when wrong CLIP selected)
+- **Cause:** Assumed all mask-based models need dual encoders like Flux
+- **Fix:**
+  - Detect Flux via `hasattr(clip, 'encode_from_tokens_scheduled')`
+  - Flux: dual encoder (CLIP-L + T5-XXL) with guidance
+  - Chroma/Qwen/SD3: single encoder (standard encoding)
+- **Reality Check:** User error (SDXL CLIP loader), but encoder detection still improved
+- **Status:** Fixed in commit 747c881
 
 ---
 
@@ -283,18 +349,24 @@ except Exception as e:
 - [x] SD 1.5 area-based conditioning
 - [x] SDXL area-based conditioning
 - [x] Flux mask-based conditioning (with 0.8 strength)
+- [x] Flux dual-encoder CLIP detection and encoding
 - [x] Inline CLIP encoding matches external CLIPTextEncode
+- [x] Canvas widget visibility and proper rendering (November 2025)
 - [x] Canvas drawing and box visualization
+- [x] Default template boxes work without saving workflow (November 2025)
 - [x] Error handling with missing metadata
 - [x] Bounds checking in MultiLatentComposite
 
 ### Needs Testing ⏳
-- [ ] Chroma (Chroma1-Radiance) mask-based conditioning
-- [ ] SD3 / SD3.5 mask-based conditioning
-- [ ] Qwen-Image (generation model) compatibility
+- [ ] Chroma (Chroma1-Radiance) mask-based conditioning (1 encoder: T5-XXL)
+- [ ] SD3 / SD3.5 mask-based conditioning (3 encoders: CLIP-L + CLIP-G + T5-XXL)
+- [ ] HiDream compatibility (4 encoders in ComfyUI)
+- [ ] WAN 2.1 / WAN 2.2 compatibility (1 encoder: UMT5-XXL)
+- [ ] Qwen-Image (generation model) compatibility (1 encoder: Qwen 2.5 VL LLM)
 - [ ] Canvas scaling with different output resolutions
 - [ ] Feathering effectiveness across different Flux models
 - [ ] Region limit (>4 regions) quality degradation
+- [ ] Dynamic canvas resize responsiveness (width/height input changes)
 
 ---
 
@@ -311,10 +383,14 @@ except Exception as e:
 - Feathering: 40-60px (5-8 latent) provides gentle blending without blur
 
 ### Model Information
-- **Flux:** black-forest-labs/FLUX.1-dev, FLUX.1-schnell
-- **Chroma:** GenerativeModels/Chroma1-Radiance
-- **SD3:** StabilityAI/stable-diffusion-3-medium
-- **Qwen-Image:** Qwen/Qwen-VL (needs confirmation)
+- **Flux:** black-forest-labs/FLUX.1-dev, FLUX.1-schnell (2 encoders: T5-XXL + CLIP-L)
+- **Chroma:** GenerativeModels/Chroma1-Radiance (1 encoder: T5-XXL only)
+- **SD3:** StabilityAI/stable-diffusion-3-medium (3 encoders: CLIP-L + CLIP-G + T5-XXL)
+- **SD3.5:** StabilityAI/stable-diffusion-3.5 variants (3 encoders: CLIP-L + CLIP-G + T5-XXL)
+- **HiDream:** HiDream-I1, HiDream-E1 (4 encoders in ComfyUI: CLIP-L + CLIP-G + T5 variants)
+- **WAN 2.1:** UMT5-XXL (1 encoder: fp16/fp8/bf16 variants)
+- **WAN 2.2:** UMT5-XXL + MoE architecture (1 encoder: nf4 4-bit quantization)
+- **Qwen-Image:** Qwen/Qwen-VL (1 encoder: Qwen 2.5 VL - qwen_2.5_vl_7b.safetensors vision-language LLM)
 
 ---
 

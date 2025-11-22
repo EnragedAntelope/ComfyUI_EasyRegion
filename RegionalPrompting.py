@@ -78,30 +78,38 @@ Compatible: SD1.5, SD2.x, SDXL"""
                       region2_prompt="", region3_prompt="", region4_prompt=""):
         """Encode all prompts and apply regional conditioning."""
 
-        values = []
+        # Default template boxes (if workflow not saved yet)
+        # Region 1 (red sports car): left side, 200x250px starting at (50, 150)
+        # Region 2 (street vendor): right side, 180x250px starting at (280, 150)
+        values = [
+            [50, 150, 200, 250, 1.0],   # Region 1
+            [280, 150, 180, 250, 1.0]    # Region 2
+        ]
         resolutionX = 512
         resolutionY = 512
 
-        # Get canvas dimensions and region data from UI
+        # Get region data from UI (overrides defaults if workflow saved)
         try:
             if extra_pnginfo and "workflow" in extra_pnginfo and "nodes" in extra_pnginfo["workflow"]:
                 for node in extra_pnginfo["workflow"]["nodes"]:
                     if node["id"] == int(unique_id):
-                        values = node["properties"].get("values", [])
+                        saved_values = node["properties"].get("values", [])
+                        if saved_values:  # Only override if we actually have saved values
+                            values = saved_values
                         resolutionX = node["properties"].get("width", 512)
                         resolutionY = node["properties"].get("height", 512)
                         break
         except Exception as e:
-            print(f"ℹ️  Using default canvas size 512x512")
+            print(f"ℹ️  Using default template boxes and canvas size 512x512")
 
         # Collect all non-empty prompts
         prompts = [background_prompt, region1_prompt, region2_prompt, region3_prompt, region4_prompt]
 
-        # Encode each prompt using CLIP
+        # Encode each prompt using CLIP (standard SD/SDXL encoding)
         encoded_conditionings = []
         for prompt in prompts:
             if prompt and prompt.strip():  # Only encode non-empty prompts
-                # Use CLIPTextEncode functionality
+                # Standard CLIP encoding for SD/SDXL
                 tokens = clip.tokenize(prompt)
                 cond, pooled = clip.encode_from_tokens(tokens, return_pooled=True)
                 encoded_conditionings.append([[cond, {"pooled_output": pooled}]])
@@ -252,9 +260,9 @@ How to use:
 • Works well with other mask-based models - try it first!
 
 Model-Specific Tips:
-• FLUX: Use 3-4 regions max (quality degrades with more), increase CFG to 5-7
+• FLUX: Use 3-4 regions max (quality degrades with more)
 • FLUX-BASED (Chroma, etc.): Likely 3-4 region limit too (untested), try and see!
-• SD3/SD3.5: No known region limit, standard CFG values
+• SD3/SD3.5: No known region limit
 • QWEN-IMAGE: Experimental - try mask-based conditioning and report results!
 
 Compatible: Flux (all variants), Chroma, SD3, SD3.5, and other mask-based models"""
@@ -262,22 +270,30 @@ Compatible: Flux (all variants), Chroma, SD3, SD3.5, and other mask-based models
     def encode_regions_flux(self, clip, width, height, background_prompt, region1_prompt,
                            soften_masks, extra_pnginfo, unique_id,
                            region2_prompt="", region3_prompt="", region4_prompt=""):
-        """Encode all prompts and apply mask-based regional conditioning for Flux."""
+        """Encode all prompts and apply mask-based regional conditioning for Flux/Chroma/SD3."""
 
-        values = []
+        # Default template boxes (if workflow not saved yet)
+        # Region 1 (red sports car): left side, 400x500px starting at (100, 300)
+        # Region 2 (street vendor): right side, 350x500px starting at (560, 300)
+        values = [
+            [100, 300, 400, 500, 1.0],   # Region 1
+            [560, 300, 350, 500, 1.0]    # Region 2
+        ]
 
-        # Get region data from UI
+        # Get region data from UI (overrides defaults if workflow saved)
         try:
             if extra_pnginfo and "workflow" in extra_pnginfo and "nodes" in extra_pnginfo["workflow"]:
                 for node in extra_pnginfo["workflow"]["nodes"]:
                     if node["id"] == int(unique_id):
-                        values = node["properties"].get("values", [])
+                        saved_values = node["properties"].get("values", [])
+                        if saved_values:  # Only override if we actually have saved values
+                            values = saved_values
                         # Override with property dimensions if available
                         prop_width = node["properties"].get("width", width)
                         prop_height = node["properties"].get("height", height)
                         break
         except Exception as e:
-            print(f"ℹ️  Using input dimensions {width}x{height}")
+            print(f"ℹ️  Using default template boxes and dimensions {width}x{height}")
             prop_width = width
             prop_height = height
 
@@ -291,7 +307,10 @@ Compatible: Flux (all variants), Chroma, SD3, SD3.5, and other mask-based models
             print(f"⚠️  Warning: {num_regions} regions detected. Flux works best with 3-4 regions maximum.")
 
         # Encode each prompt using CLIP
+        # ComfyUI's CLIP object handles multi-encoder complexity internally
+        # Works for all models: Flux (2 encoders), SD3 (3 encoders), Chroma/Qwen (1 encoder), etc.
         encoded_conditionings = []
+
         for prompt in prompts:
             if prompt and prompt.strip():
                 tokens = clip.tokenize(prompt)

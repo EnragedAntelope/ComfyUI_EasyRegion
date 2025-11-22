@@ -78,30 +78,38 @@ Compatible: SD1.5, SD2.x, SDXL"""
                       region2_prompt="", region3_prompt="", region4_prompt=""):
         """Encode all prompts and apply regional conditioning."""
 
-        values = []
+        # Default template boxes (if workflow not saved yet)
+        # Region 1 (red sports car): left side, 200x250px starting at (50, 150)
+        # Region 2 (street vendor): right side, 180x250px starting at (280, 150)
+        values = [
+            [50, 150, 200, 250, 1.0],   # Region 1
+            [280, 150, 180, 250, 1.0]    # Region 2
+        ]
         resolutionX = 512
         resolutionY = 512
 
-        # Get canvas dimensions and region data from UI
+        # Get region data from UI (overrides defaults if workflow saved)
         try:
             if extra_pnginfo and "workflow" in extra_pnginfo and "nodes" in extra_pnginfo["workflow"]:
                 for node in extra_pnginfo["workflow"]["nodes"]:
                     if node["id"] == int(unique_id):
-                        values = node["properties"].get("values", [])
+                        saved_values = node["properties"].get("values", [])
+                        if saved_values:  # Only override if we actually have saved values
+                            values = saved_values
                         resolutionX = node["properties"].get("width", 512)
                         resolutionY = node["properties"].get("height", 512)
                         break
         except Exception as e:
-            print(f"ℹ️  Using default canvas size 512x512")
+            print(f"ℹ️  Using default template boxes and canvas size 512x512")
 
         # Collect all non-empty prompts
         prompts = [background_prompt, region1_prompt, region2_prompt, region3_prompt, region4_prompt]
 
-        # Encode each prompt using CLIP
+        # Encode each prompt using CLIP (standard SD/SDXL encoding)
         encoded_conditionings = []
         for prompt in prompts:
             if prompt and prompt.strip():  # Only encode non-empty prompts
-                # Use CLIPTextEncode functionality
+                # Standard CLIP encoding for SD/SDXL
                 tokens = clip.tokenize(prompt)
                 cond, pooled = clip.encode_from_tokens(tokens, return_pooled=True)
                 encoded_conditionings.append([[cond, {"pooled_output": pooled}]])
@@ -199,6 +207,13 @@ class RegionalPrompterFlux:
                     "default": True,
                     "tooltip": "✅ RECOMMENDED: Softer masks (0.8 strength + gentle edge blend) work better than harsh full-strength (1.0) masks. Confirmed better for Flux, works well with other mask-based models. Disable if you prefer sharper region edges."
                 }),
+                "guidance": ("FLOAT", {
+                    "default": 3.5,
+                    "min": 0.0,
+                    "max": 100.0,
+                    "step": 0.1,
+                    "tooltip": "Guidance strength for Flux (default 3.5). Higher values = stronger prompt adherence. Try 5-7 for better regional control."
+                }),
             },
             "optional": {
                 "region2_prompt": ("STRING", {
@@ -260,24 +275,32 @@ Model-Specific Tips:
 Compatible: Flux (all variants), Chroma, SD3, SD3.5, and other mask-based models"""
 
     def encode_regions_flux(self, clip, width, height, background_prompt, region1_prompt,
-                           soften_masks, extra_pnginfo, unique_id,
+                           soften_masks, guidance, extra_pnginfo, unique_id,
                            region2_prompt="", region3_prompt="", region4_prompt=""):
-        """Encode all prompts and apply mask-based regional conditioning for Flux."""
+        """Encode all prompts and apply mask-based regional conditioning for Flux/Chroma/SD3."""
 
-        values = []
+        # Default template boxes (if workflow not saved yet)
+        # Region 1 (red sports car): left side, 400x500px starting at (100, 300)
+        # Region 2 (street vendor): right side, 350x500px starting at (560, 300)
+        values = [
+            [100, 300, 400, 500, 1.0],   # Region 1
+            [560, 300, 350, 500, 1.0]    # Region 2
+        ]
 
-        # Get region data from UI
+        # Get region data from UI (overrides defaults if workflow saved)
         try:
             if extra_pnginfo and "workflow" in extra_pnginfo and "nodes" in extra_pnginfo["workflow"]:
                 for node in extra_pnginfo["workflow"]["nodes"]:
                     if node["id"] == int(unique_id):
-                        values = node["properties"].get("values", [])
+                        saved_values = node["properties"].get("values", [])
+                        if saved_values:  # Only override if we actually have saved values
+                            values = saved_values
                         # Override with property dimensions if available
                         prop_width = node["properties"].get("width", width)
                         prop_height = node["properties"].get("height", height)
                         break
         except Exception as e:
-            print(f"ℹ️  Using input dimensions {width}x{height}")
+            print(f"ℹ️  Using default template boxes and dimensions {width}x{height}")
             prop_width = width
             prop_height = height
 
@@ -291,12 +314,43 @@ Compatible: Flux (all variants), Chroma, SD3, SD3.5, and other mask-based models
             print(f"⚠️  Warning: {num_regions} regions detected. Flux works best with 3-4 regions maximum.")
 
         # Encode each prompt using CLIP
+        # Flux uses dual-encoder (CLIP-L + T5-XXL), Chroma/Qwen use single encoder
         encoded_conditionings = []
+
+        # Detect if this is Flux by checking for encode_from_tokens_scheduled method
+        is_flux = hasattr(clip, 'encode_from_tokens_scheduled')
+
         for prompt in prompts:
             if prompt and prompt.strip():
                 tokens = clip.tokenize(prompt)
-                cond, pooled = clip.encode_from_tokens(tokens, return_pooled=True)
-                encoded_conditionings.append([[cond, {"pooled_output": pooled}]])
+
+                if is_flux:
+                    # Flux-specific: Dual encoder (CLIP-L + T5-XXL) with guidance
+                    # Check if t5xxl tokens are available
+                    if "t5xxl" in tokens:
+                        # Already has both encoders in single tokenize call
+                        pass
+                    else:
+                        # Need to merge t5xxl tokens manually
+                        try:
+                            t5_result = clip.tokenize(prompt)
+                            if "t5xxl" in t5_result:
+                                tokens["t5xxl"] = t5_result["t5xxl"]
+                        except:
+                            pass
+
+                    # Use Flux's scheduled encoding with guidance
+                    try:
+                        cond = clip.encode_from_tokens_scheduled(tokens, add_dict={"guidance": guidance})
+                        encoded_conditionings.append(cond)
+                    except Exception as e:
+                        print(f"⚠️  Flux encoding failed: {e}, using fallback")
+                        cond, pooled = clip.encode_from_tokens(tokens, return_pooled=True)
+                        encoded_conditionings.append([[cond, {"pooled_output": pooled}]])
+                else:
+                    # Standard encoding for Chroma, Qwen, SD3, etc. (single encoder)
+                    cond, pooled = clip.encode_from_tokens(tokens, return_pooled=True)
+                    encoded_conditionings.append([[cond, {"pooled_output": pooled}]])
             else:
                 encoded_conditionings.append(None)
 

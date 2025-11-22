@@ -28,10 +28,10 @@ function addRegionalPrompterCanvas(node, app) {
 			const margin = 10
 			const border = 2
 
-			const widgetHeight = node.canvasHeight
-			const values = node.properties["values"]
-			const width = Math.round(node.properties["width"])
-			const height = Math.round(node.properties["height"])
+			const widgetHeight = node.canvasHeight || 200
+			const values = node.properties["values"] || []
+			const width = Math.round(node.properties["width"] || 512)
+			const height = Math.round(node.properties["height"] || 512)
 
 			const scale = Math.min((widgetWidth-margin*2)/width, (widgetHeight-margin*2)/height)
 
@@ -45,11 +45,19 @@ function addRegionalPrompterCanvas(node, app) {
 			}
 			const index = indexWidget ? Math.round(indexWidget.value) : 0;
 
+			// Ensure canvas element has proper internal dimensions
+			const canvasDisplayWidth = Math.max(200, widgetWidth * t.a);
+			const canvasDisplayHeight = Math.max(200, widgetHeight * t.d);
+
+			// Set canvas internal resolution (for drawing)
+			this.canvas.width = widgetWidth;
+			this.canvas.height = widgetHeight;
+
 			Object.assign(this.canvas.style, {
 				left: `${t.e}px`,
 				top: `${t.f + (widgetY*t.d)}px`,
-				width: `${widgetWidth * t.a}px`,
-				height: `${widgetHeight * t.d}px`,
+				width: `${canvasDisplayWidth}px`,
+				height: `${canvasDisplayHeight}px`,
 				position: "absolute",
 				zIndex: 1,
 				fontSize: `${t.d * 10.0}px`,
@@ -128,27 +136,39 @@ function addRegionalPrompterCanvas(node, app) {
 			ctx.stroke();
 			ctx.closePath();
 
-			// Draw currently selected zone
-			let [x, y, w, h] = getDrawArea(values[index])
+			// Draw currently selected zone (if values exist)
+			if (values.length > 0 && index < values.length) {
+				let [x, y, w, h] = getDrawArea(values[index])
 
-			w = Math.max(32*scale, w)
-			h = Math.max(32*scale, h)
+				w = Math.max(32*scale, w)
+				h = Math.max(32*scale, h)
 
-			ctx.fillStyle = "#ffffff"
-			ctx.fillRect(widgetX+x, widgetY+y, w, h)
+				ctx.fillStyle = "#ffffff"
+				ctx.fillRect(widgetX+x, widgetY+y, w, h)
 
-			const selectedColor = getDrawColor(index/values.length, "FF")
-			ctx.fillStyle = selectedColor
-			ctx.fillRect(widgetX+x+border, widgetY+y+border, w-border*2, h-border*2)
+				const selectedColor = getDrawColor(index/values.length, "FF")
+				ctx.fillStyle = selectedColor
+				ctx.fillRect(widgetX+x+border, widgetY+y+border, w-border*2, h-border*2)
 
-			ctx.lineWidth = 1;
-			ctx.closePath();
+				ctx.lineWidth = 1;
+				ctx.closePath();
+			} else {
+				// No regions defined yet - show helpful message
+				ctx.fillStyle = "#ffffff80";
+				ctx.font = "14px Arial";
+				ctx.textAlign = "center";
+				ctx.fillText("Add regions by adjusting x/y/width/height below", widgetX + backgroundWidth/2, widgetY + backgroundHeight/2);
+			}
 
 		},
 	};
 
 	widget.canvas = document.createElement("canvas");
 	widget.canvas.className = "dave-custom-canvas";
+
+	// Set initial canvas dimensions (will be updated by draw function)
+	widget.canvas.width = 512;
+	widget.canvas.height = 512;
 
 	widget.parent = node;
 	document.body.appendChild(widget.canvas);
@@ -171,6 +191,11 @@ function addRegionalPrompterCanvas(node, app) {
 	node.onResize = function (size) {
 		computeCanvasSize(node, size);
 	}
+
+	// Force initial canvas size computation
+	setTimeout(() => {
+		computeCanvasSize(node, node.size);
+	}, 100);
 
 	return { minWidth: 200, minHeight: 200, widget }
 }

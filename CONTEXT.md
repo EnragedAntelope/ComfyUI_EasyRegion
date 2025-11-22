@@ -2,7 +2,7 @@
 
 **Last Updated:** November 22, 2025
 **ComfyUI Version:** 0.3.71
-**Repository:** EnragedAntelope/ComfyUI_RegionalConditioning
+**Repository:** EnragedAntelope/ComfyUI_EasyRegion (formerly ComfyUI_RegionalConditioning)
 
 ---
 
@@ -20,12 +20,24 @@
 #### Mask-Based Conditioning (Flux, Chroma, SD3, etc.)
 - **Models:** Flux (all variants), Chroma (Chroma1-Radiance, etc.), SD3/SD3.5, and other mask-based models
 - **Technology:** Binary masks (1.0 values) with `mask_strength` parameter controlling intensity
-- **Critical Discovery:** Flux requires **VERY HIGH mask_strength values** (5.0-8.0+ range!)
-  - **UPDATED November 2025:** User testing proved strength 4.0 = doesn't show, strength 6.0 = works
-  - Binary mask tensor should use 1.0 values (not 0.8)
-  - Strength is controlled entirely by the `mask_strength` conditioning parameter
-  - Background strength should be LOW (0.3-0.7) to allow regions to show
-  - **Other Models:** Different models may require different strength ranges - user testing needed
+- **Critical Discovery - Strength Values (FINAL - November 2025):**
+  - **Binary mask tensor:** Always use 1.0 values (not 0.8 or other values)
+  - **Strength controlled by:** `mask_strength` parameter in conditioning dict
+  - **Optimal Flux values with bg_strength=0.5:**
+    - region1_strength: **2.5**
+    - region2_strength: **3.5**
+    - region3_strength: **4.0**
+    - region4_strength: **4.5**
+    - background_strength: **0.5** (range 0.3-0.7)
+  - **⚠️ WARNING:** Values above 5.0 cause softness and detail loss!
+  - **User testing results:**
+    - Strength 2.5-4.5 = sharp details, regions show correctly
+    - Strength 5.0+ = soft/blurry, loss of fine details
+    - Background 0.5 works well (too high = regions don't show, too low = background disappears)
+- **Region Positioning (CRITICAL):**
+  - **Position regions FAR APART for best results** (e.g., left third and right third of image)
+  - Overlapping or close regions compete and interfere with each other
+  - Default templates now use far-apart positioning (50-350px and 674-974px for 1024x1024)
 - **Feathering:** 40-60px (5-8 latent pixels) gentle feathering improves blending
   - Tied to `soften_masks` toggle - user can disable for sharp edges
   - Feathering gradient: 0.0 to 1.0 (not scaled by mask strength)
@@ -37,13 +49,10 @@
   - Higher CFG values cause blur and artifacts
   - Do NOT use negative prompts with Base Flux
   - Dev variants may support higher CFG, but start with 1.0
-- **Per-Region Strength (CRITICAL DISCOVERY - November 2025):**
-  - **Each region needs its own strength control** - global strength doesn't work!
-  - User testing showed: strength 4.0 for car = didn't appear, strength 6.0 for giraffe = worked
-  - **Implementation:** Added region1_strength, region2_strength, region3_strength, region4_strength inputs
-  - **Recommended defaults for Flux:** 5.0, 6.0, 7.0, 8.0 (increasing strength for later regions)
-  - **Background strength:** 0.5 default (range 0.3-0.7 recommended for Flux)
-  - **Why:** Background and regions compete; low background + high region strengths = regions show
+- **Per-Region Strength Implementation:**
+  - **Each region has independent strength control** - essential for balancing multiple regions
+  - Added region1_strength, region2_strength, region3_strength, region4_strength inputs
+  - Step size: 0.1 for fine control
   - **Conditioning key:** Use `mask_strength` (not `strength`) for mask-based conditioning
   - **set_area_to_bounds:** Should be False for mask-based conditioning
 
@@ -124,15 +133,39 @@ for prompt in prompts:
   - **Reasoning:** Mask-based conditioning works for Flux, Chroma, SD3, Qwen-Image, etc.
   - **Also Updated:** "SD/SDXL - Easy!" → "Area-Based" (describes conditioning method)
 
-#### JavaScript UI
+#### JavaScript UI & Canvas
 - **Loading:** ComfyUI loads extensions from `/js/` folder **ONLY if `WEB_DIRECTORY` is exported in `__init__.py`**
   - **CRITICAL:** Must export `WEB_DIRECTORY = os.path.join(os.path.dirname(__file__), "js")`
   - Without this export, JavaScript files are completely ignored - canvas won't appear at all!
-- **Canvas:** Shared drawing code between area-based and mask-based nodes
+- **Canvas Drawing:** Shared drawing code between area-based and mask-based nodes
 - **Grid:** 64px grid overlay helps users align to latent boundaries
 - **Color Coding:** Each region gets unique color based on index/length ratio
-- **Canvas Widget Critical Pattern:**
-  - Must set `canvas.width` and `canvas.height` attributes (not just CSS styles)
+- **Canvas Sizing (CRITICAL - Learned through MANY failed attempts):**
+  - **❌ WRONG:** Dynamic canvas height calculation based on node size and widget heights
+    - Attempted MIN_SIZE with BOTTOM_PADDING calculations → constant overlap issues
+    - Tried `freeSpace - widgetHeight` calculations → canvas extended beyond node bounds
+    - Attempted 10+ different padding/sizing formulas → none worked reliably
+  - **✅ CORRECT:** **FIXED canvas height (280px)** - simple and reliable
+    - Set `const CANVAS_HEIGHT = 280` in `computeCanvasSize()`
+    - Set `minHeight: 280` in `addEasyRegionCanvas()` return value
+    - Node size auto-adjusts to fit canvas + all widgets + 20px bottom margin
+    - **This is how most ComfyUI custom nodes handle canvas widgets**
+  - **Key Insight:** Dynamic sizing sounds good in theory but causes endless edge cases
+    - Different widget counts, resizing, prompt multiline expansion all broke dynamic sizing
+    - Fixed height eliminates all these issues and provides consistent UX
+- **Widget Positioning:**
+  - Widgets positioned sequentially after canvas with 4px spacing
+  - Canvas always comes after prompt inputs, before box manipulation widgets
+- **Region Selector Mapping (1-based UI to 0-based array):**
+  - **UI displays:** "Region 1", "Region 2" (user-friendly)
+  - **Internally stores:** `values[0]`, `values[1]` (array indexing)
+  - **transformFunc:** MUST convert `regionValue - 1` to get array index
+  - **Critical Bug:** Was using selector value directly → editing Region 1 modified Region 2!
+- **Future Enhancement - Help Icon:**
+  - **TODO:** Add ? icon in node title bar that opens usage help modal
+  - Other custom nodes implement this (not unique to our nodes)
+  - Would provide: general usage tips, strength guidelines, troubleshooting
+  - **Implementation:** Custom button in title bar with click handler showing modal overlay
   - CSS controls display size, attributes control internal drawing resolution
   - Force initial size computation with `setTimeout(() => computeCanvasSize(node, node.size), 100)`
   - Always provide fallback values for `node.canvasHeight`, `node.properties["values"]`, etc.

@@ -6,7 +6,7 @@ import torch
 from nodes import MAX_RESOLUTION
 import folder_paths
 
-class RegionalPrompterSimple:
+class EasyRegionSimple:
     """
     ALL-IN-ONE regional prompting with inline text inputs!
 
@@ -55,7 +55,7 @@ class RegionalPrompterSimple:
     RETURN_TYPES = ("CONDITIONING",)
     RETURN_NAMES = ("conditioning",)
     FUNCTION = "encode_regions"
-    CATEGORY = "RegionalPrompter"
+    CATEGORY = "EasyRegion"
     DESCRIPTION = """🎨 ALL-IN-ONE Regional Prompting (EASY MODE!)
 
 Just type your prompts and draw boxes - that's it!
@@ -164,7 +164,7 @@ Compatible: SD1.5, SD2.x, SDXL"""
         return (c,)
 
 
-class RegionalPrompterFlux:
+class EasyRegionFlux:
     """
     ALL-IN-ONE regional prompting for FLUX/CHROMA with inline text inputs!
 
@@ -266,7 +266,7 @@ class RegionalPrompterFlux:
     RETURN_TYPES = ("CONDITIONING",)
     RETURN_NAMES = ("conditioning",)
     FUNCTION = "encode_regions_flux"
-    CATEGORY = "RegionalPrompter"
+    CATEGORY = "EasyRegion"
     DESCRIPTION = """Mask-based regional prompting for Flux, Chroma, SD3, SD3.5, Qwen-Image.
 
 Quick Start:

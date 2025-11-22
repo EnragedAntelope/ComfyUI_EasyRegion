@@ -1,18 +1,18 @@
-# ComfyUI Regional Conditioning
+# ComfyUI EasyRegion
 
 Control different parts of your image with separate prompts using visual box drawing.
 
 ## Quick Start
 
 1. **Install**: Clone to `ComfyUI/custom_nodes/` or use ComfyUI Manager
-2. **Add Node**: Search for "Regional Prompter"
-3. **Connect**: CLIP → Regional Prompter → Sampler
+2. **Add Node**: Search for "EasyRegion"
+3. **Connect**: CLIP → EasyRegion → Sampler
 4. **Draw**: Use canvas to position regions, type prompts
 5. **Generate**: Connect to your sampler and run
 
 ## Nodes
 
-### Regional Prompter (Mask-Based)
+### EasyRegion (Mask-Based)
 **For:** Flux, Chroma, SD3, SD3.5, Qwen-Image
 
 **Inputs:**
@@ -20,36 +20,41 @@ Control different parts of your image with separate prompts using visual box dra
 - `width`/`height`: Must match your latent dimensions
 - `soften_masks`: Feathering at edges (recommended ON)
 - `background_prompt`: Scene description
+- `background_strength`: Background conditioning strength (0.5 default)
 - `region1-4_prompt`: Region-specific prompts
+- `region1-4_strength`: Per-region strength (2.5-4.5 for Flux)
 
 **Tips:**
-- Use CFG 1.0-3.5 with Flux (higher = blur)
+- Use CFG 1.0 with Flux Base (higher = blur)
 - Keep to 3-4 regions max for Flux/Chroma
-- Default strength 0.8 works well
+- **Position regions FAR APART** for best results (left/right thirds)
+- Strength 2.5-4.5 works well with bg_strength=0.5 (too high = soft/lose details)
 
-### Regional Prompter (Area-Based)
+### EasyRegion (Area-Based)
 **For:** SD1.5, SD2.x, SDXL
 
 Same interface, uses area-based conditioning instead of masks.
 
 ## Canvas Controls
 
-- **index**: Select which region to edit
-- **box_x, box_y**: Region top-left position
-- **box_w, box_h**: Region dimensions
-- **strength**: Conditioning strength (0-10, default 0.8)
+- **region**: Select which region to edit (1-4)
+- **box_x, box_y**: Region top-left position (pixels)
+- **box_w, box_h**: Region dimensions (pixels)
 
 ## Example Workflow
 
 ```
 Checkpoint Loader
-├→ CLIP → Regional Prompter (Mask-Based)
+├→ CLIP → EasyRegion (Mask-Based)
 │           ├ width: 1024
 │           ├ height: 1024
 │           ├ soften_masks: true
-│           ├ background: "city street"
-│           ├ region1: "red sports car"
-│           └ region2: "street vendor"
+│           ├ background_prompt: "empty city street at night"
+│           ├ background_strength: 0.5
+│           ├ region1_prompt: "red sports car on left side (left third)"
+│           ├ region1_strength: 2.5
+│           ├ region2_prompt: "giraffe on right side (right third)"
+│           └ region2_strength: 3.5
 ├→ MODEL → KSampler ← conditioning
 └→ VAE → VAE Decode
 ```
@@ -57,17 +62,23 @@ Checkpoint Loader
 ## Troubleshooting
 
 **Regions not showing:**
+- **Increase region strength** (try 3.0-5.0 for Flux)
+- Lower background_strength (try 0.3-0.5)
 - Check width/height match your latent exactly
-- Try lower CFG (1.0-2.0) with Flux
 - Verify boxes aren't outside image bounds
+- **Position regions FAR APART** - overlapping regions compete
+
+**Soft/blurry regions:**
+- **Lower region strength** (too high = loss of detail)
+- For Flux: 2.5-4.5 range works well with bg_strength=0.5
 
 **Validation errors:**
 - Ensure width/height are multiples of 64
 - Check no regions overlap fullscreen
 
-**Blurry output:**
-- Lower CFG (Flux likes 1.0-3.5)
-- Try strength 0.6-0.8 instead of 1.0
+**CFG Issues with Flux:**
+- Use CFG 1.0 for Flux Base (NO negative prompt)
+- Higher CFG = blur and artifacts
 
 ## Advanced Nodes
 

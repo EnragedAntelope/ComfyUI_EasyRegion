@@ -6,11 +6,11 @@ import { app } from "/scripts/app.js";
 import {CUSTOM_INT, transformFunc, swapInputs, renameNodeInputs, removeNodeInputs, getDrawColor, computeCanvasSize} from "./utils.js"
 
 // Shared canvas function for both enhanced nodes
-function addRegionalPrompterCanvas(node, app) {
+function addEasyRegionCanvas(node, app) {
 
 	const widget = {
 		type: "customCanvas",
-		name: "RegionalPrompter-Canvas",
+		name: "EasyRegion-Canvas",
 		get value() {
 			return this.canvas.value;
 		},
@@ -213,9 +213,9 @@ function addRegionalPrompterCanvas(node, app) {
 }
 
 app.registerExtension({
-	name: "Comfy.Davemane42.RegionalPrompterSimple",
+	name: "Comfy.EasyRegion.Simple",
 	async beforeRegisterNodeDef(nodeType, nodeData, app) {
-		if (nodeData.name === "RegionalPrompterSimple") {
+		if (nodeData.name === "EasyRegionSimple") {
 			const onNodeCreated = nodeType.prototype.onNodeCreated;
 			nodeType.prototype.onNodeCreated = function () {
 				const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
@@ -235,7 +235,7 @@ app.registerExtension({
 				this.serialize_widgets = true;
 
 				// Add canvas after the prompt inputs
-				addRegionalPrompterCanvas(this, app)
+				addEasyRegionCanvas(this, app)
 
 				// Limit height of multiline prompt widgets to make node more compact
 				const promptLabels = {
@@ -310,7 +310,7 @@ app.registerExtension({
 		}
 	},
 	loadedGraphNode(node, _) {
-		if (node.type === "RegionalPrompterSimple") {
+		if (node.type === "EasyRegionSimple") {
 			node.widgets[node.index].options["max"] = node.properties["values"].length-1
 		}
 	},
@@ -318,9 +318,9 @@ app.registerExtension({
 });
 
 app.registerExtension({
-	name: "Comfy.Davemane42.RegionalPrompterFlux",
+	name: "Comfy.EasyRegion.Flux",
 	async beforeRegisterNodeDef(nodeType, nodeData, app) {
-		if (nodeData.name === "RegionalPrompterFlux") {
+		if (nodeData.name === "EasyRegionFlux") {
 			const onNodeCreated = nodeType.prototype.onNodeCreated;
 			nodeType.prototype.onNodeCreated = function () {
 				const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
@@ -340,7 +340,7 @@ app.registerExtension({
 				this.serialize_widgets = true;
 
 				// Add canvas after the prompt inputs
-				addRegionalPrompterCanvas(this, app)
+				addEasyRegionCanvas(this, app)
 
 				// Limit height of multiline prompt widgets to make node more compact
 				const promptLabels = {
@@ -454,7 +454,7 @@ app.registerExtension({
 		}
 	},
 	loadedGraphNode(node, _) {
-		if (node.type === "RegionalPrompterFlux") {
+		if (node.type === "EasyRegionFlux") {
 			node.widgets[node.index].options["max"] = node.properties["values"].length-1
 
 			// Sync canvas properties with widget values on load

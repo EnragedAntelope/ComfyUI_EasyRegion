@@ -41,8 +41,11 @@ export function recursiveLinkUpstream(node, type, depth, index=null) {
 export function transformFunc(widget, value, node, index) {
 	const s = widget.options.step / 10;
 	widget.value = Math.round(value / s) * s;
-	node.properties["values"][node.widgets[node.index].value][index] = widget.value
-	if (node.widgets_values) { 
+	// Convert 1-based region selector (Region 1, Region 2...) to 0-based array index
+	const regionSelectorValue = node.widgets[node.index].value;
+	const arrayIndex = regionSelectorValue - 1;  // Region 1 → index 0, Region 2 → index 1, etc.
+	node.properties["values"][arrayIndex][index] = widget.value
+	if (node.widgets_values) {
 		node.widgets_values[2] = node.properties["values"].join()
 	}
 }
@@ -134,7 +137,8 @@ export function getDrawColor(percent, alpha) {
 export function computeCanvasSize(node, size) {
 	if (node.widgets[0].last_y == null) return;
 
-	const MIN_SIZE = 300;  // Balanced size for proper canvas visibility
+	const MIN_SIZE = 320;  // Minimum canvas size for visibility
+	const BOTTOM_PADDING = 20;  // Padding to prevent canvas overlap with widgets/border
 
 	let y = LiteGraph.NODE_WIDGET_HEIGHT * Math.max(node.inputs.length, node.outputs.length) + 5;
 	let freeSpace = size[1] - y;
@@ -152,19 +156,16 @@ export function computeCanvasSize(node, size) {
 		}
 	}
 
-	// See how large the canvas can be
+	// Calculate canvas height with padding
 	freeSpace -= widgetHeight;
+	let canvasHeight = Math.max(MIN_SIZE, freeSpace - BOTTOM_PADDING);
 
-	// There isn't enough space for all the widgets, increase the size of the node
-	if (freeSpace < MIN_SIZE) {
-		freeSpace = MIN_SIZE;
-		node.size[1] = y + widgetHeight + freeSpace;
+	// Adjust node size if needed to fit canvas + widgets + padding
+	const requiredHeight = y + widgetHeight + canvasHeight + BOTTOM_PADDING;
+	if (size[1] < requiredHeight) {
+		node.size[1] = requiredHeight;
 		node.graph.setDirtyCanvas(true);
 	}
-
-	// Add small bottom padding to prevent canvas from overlapping widgets/node border
-	const BOTTOM_PADDING = 10;
-	const canvasHeight = Math.max(MIN_SIZE - BOTTOM_PADDING, freeSpace - BOTTOM_PADDING);
 
 	// Position each of the widgets
 	for (const w of node.widgets) {

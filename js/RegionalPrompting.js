@@ -364,6 +364,10 @@ app.registerExtension({
 					widthWidget.callback = function(value) {
 						// Update canvas property to match
 						this.properties["width"] = value;
+						// Force canvas redraw
+						if (app.graph) {
+							app.graph.setDirtyCanvas(true, true);
+						}
 						// Call original callback if it exists
 						if (originalWidthCallback) {
 							originalWidthCallback.apply(this, arguments);
@@ -376,6 +380,10 @@ app.registerExtension({
 					heightWidget.callback = function(value) {
 						// Update canvas property to match
 						this.properties["height"] = value;
+						// Force canvas redraw
+						if (app.graph) {
+							app.graph.setDirtyCanvas(true, true);
+						}
 						// Call original callback if it exists
 						if (originalHeightCallback) {
 							originalHeightCallback.apply(this, arguments);

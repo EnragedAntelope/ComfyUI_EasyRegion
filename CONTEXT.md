@@ -39,6 +39,44 @@
 - **Works:** Identical to external CLIPTextEncode nodes
 - **Benefit:** Massive UX improvement - no external nodes needed!
 
+#### Text Encoder Architectures by Model
+**CRITICAL:** Different models use different numbers and types of text encoders. ComfyUI's CLIP object handles the complexity internally, but understanding the architecture helps with debugging.
+
+| Model | # Encoders | Encoder Types | Implementation Notes |
+|-------|-----------|---------------|---------------------|
+| **SD 1.5** | 1 | CLIP-L | Standard `encode_from_tokens` |
+| **SD 2.x** | 1 | OpenCLIP-H | Standard `encode_from_tokens` |
+| **SDXL** | 2 | CLIP-L + OpenCLIP-G | Standard `encode_from_tokens` (handled internally) |
+| **Flux** ✅ | 2 | T5-XXL + CLIP-L | **`encode_from_tokens_scheduled`** with guidance |
+| **Chroma** ✅ | 1 | T5-XXL only | Standard `encode_from_tokens` (Flux-based but single encoder!) |
+| **SD3** | 3 | CLIP-L + CLIP-G + T5-XXL | Standard `encode_from_tokens` (multi-encoder internal) |
+| **SD3.5** | 3 | CLIP-L + CLIP-G + T5-XXL | Standard `encode_from_tokens` (multi-encoder internal) |
+| **HiDream** | 4 | CLIP-L + CLIP-G + 2× T5 variants | ComfyUI uses 4 encoder files |
+| **WAN 2.1** | 1 | UMT5-XXL | Standard encoding (fp16/fp8/bf16 variants) |
+| **WAN 2.2** | 1 | UMT5-XXL + MoE | Standard encoding (nf4 4-bit quantization) |
+| **Qwen-Image** | 1 | (Unknown - likely CLIP variant) | Experimental, standard encoding expected |
+
+**Detection Strategy:**
+```python
+# Current implementation (correct for most models)
+is_flux = hasattr(clip, 'encode_from_tokens_scheduled')
+
+if is_flux:
+    # Flux-specific: dual encoder with guidance scheduling
+    cond = clip.encode_from_tokens_scheduled(tokens, add_dict={"guidance": guidance})
+else:
+    # Standard encoding: SD/SDXL/Chroma/SD3/SD3.5/HiDream/WAN/Qwen
+    # ComfyUI's CLIP object handles multi-encoder complexity internally
+    cond, pooled = clip.encode_from_tokens(tokens, return_pooled=True)
+```
+
+**Key Insights:**
+- ✅ **Chroma is Flux-based architecture but uses ONLY 1 encoder** (T5-XXL, not CLIP-L+T5-XXL)
+- ✅ **SD3/SD3.5 use 3 encoders** but ComfyUI's CLIP handles it transparently via standard method
+- ✅ **HiDream uses 4 encoders** in ComfyUI (CLIP-L, CLIP-G, T5 variants)
+- ✅ **Flux is the ONLY model** currently requiring `encode_from_tokens_scheduled` method
+- ⚠️ **Don't assume encoder count from architecture** - Chroma proves Flux-based ≠ dual encoder!
+
 #### JavaScript UI
 - **Loading:** Modern ComfyUI auto-loads from `/js/` folder
 - **Canvas:** Shared drawing code between area-based and mask-based nodes
@@ -311,12 +349,15 @@ except Exception as e:
 - [x] Bounds checking in MultiLatentComposite
 
 ### Needs Testing ⏳
-- [ ] Chroma (Chroma1-Radiance) mask-based conditioning
-- [ ] SD3 / SD3.5 mask-based conditioning
-- [ ] Qwen-Image (generation model) compatibility
+- [ ] Chroma (Chroma1-Radiance) mask-based conditioning (1 encoder: T5-XXL)
+- [ ] SD3 / SD3.5 mask-based conditioning (3 encoders: CLIP-L + CLIP-G + T5-XXL)
+- [ ] HiDream compatibility (4 encoders in ComfyUI)
+- [ ] WAN 2.1 / WAN 2.2 compatibility (1 encoder: UMT5-XXL)
+- [ ] Qwen-Image (generation model) compatibility (encoder architecture unknown)
 - [ ] Canvas scaling with different output resolutions
 - [ ] Feathering effectiveness across different Flux models
 - [ ] Region limit (>4 regions) quality degradation
+- [ ] Dynamic canvas resize responsiveness (width/height input changes)
 
 ---
 
@@ -333,10 +374,14 @@ except Exception as e:
 - Feathering: 40-60px (5-8 latent) provides gentle blending without blur
 
 ### Model Information
-- **Flux:** black-forest-labs/FLUX.1-dev, FLUX.1-schnell
-- **Chroma:** GenerativeModels/Chroma1-Radiance
-- **SD3:** StabilityAI/stable-diffusion-3-medium
-- **Qwen-Image:** Qwen/Qwen-VL (needs confirmation)
+- **Flux:** black-forest-labs/FLUX.1-dev, FLUX.1-schnell (2 encoders: T5-XXL + CLIP-L)
+- **Chroma:** GenerativeModels/Chroma1-Radiance (1 encoder: T5-XXL only)
+- **SD3:** StabilityAI/stable-diffusion-3-medium (3 encoders: CLIP-L + CLIP-G + T5-XXL)
+- **SD3.5:** StabilityAI/stable-diffusion-3.5 variants (3 encoders: CLIP-L + CLIP-G + T5-XXL)
+- **HiDream:** HiDream-I1, HiDream-E1 (4 encoders in ComfyUI: CLIP-L + CLIP-G + T5 variants)
+- **WAN 2.1:** UMT5-XXL (1 encoder: fp16/fp8/bf16 variants)
+- **WAN 2.2:** UMT5-XXL + MoE architecture (1 encoder: nf4 4-bit quantization)
+- **Qwen-Image:** Qwen/Qwen-VL (encoder architecture needs confirmation)
 
 ---
 

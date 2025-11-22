@@ -156,6 +156,12 @@ function addRegionalPrompterCanvas(node, app) {
 				ctx.fillStyle = selectedColor
 				ctx.fillRect(widgetX+x+border, widgetY+y+border, w-border*2, h-border*2)
 
+				// Add label to selected region too
+				ctx.fillStyle = "#ffffff";
+				ctx.font = "bold 14px Arial";
+				ctx.textAlign = "left";
+				ctx.fillText(`Region ${index+1}`, widgetX+x+5, widgetY+y+18);
+
 				ctx.lineWidth = 1;
 				ctx.closePath();
 			} else {
@@ -220,8 +226,8 @@ app.registerExtension({
 				// Region 1 (red sports car): left side, 200x250px starting at (50, 150)
 				// Region 2 (street vendor): right side, 180x250px starting at (280, 150)
 				this.setProperty("values", [
-					[50, 150, 200, 250, 1.5],   // Region 1 - higher strength
-					[280, 150, 180, 250, 1.5]    // Region 2 - higher strength
+					[50, 150, 200, 250, 2.0],   // Region 1 - increased strength
+					[280, 150, 180, 250, 2.0]    // Region 2 - increased strength
 				])
 
 				this.selected = false
@@ -246,7 +252,7 @@ app.registerExtension({
 
 				CUSTOM_INT(
 					this,
-					"index",
+					"region",
 					0,
 					function (v, _, node) {
 						let values = node.properties["values"]
@@ -258,7 +264,7 @@ app.registerExtension({
 							node.widgets[offset + 1].value = values[v][1]
 							node.widgets[offset + 2].value = values[v][2]
 							node.widgets[offset + 3].value = values[v][3]
-							if (!values[v][4]) {values[v][4] = 1.5}
+							if (!values[v][4]) {values[v][4] = 2.0}
 							node.widgets[offset + 4].value = values[v][4]
 						}
 					},
@@ -269,7 +275,7 @@ app.registerExtension({
 				CUSTOM_INT(this, "box_y", 0, function (v, _, node) {transformFunc(this, v, node, 1)})
 				CUSTOM_INT(this, "box_w", 0, function (v, _, node) {transformFunc(this, v, node, 2)})
 				CUSTOM_INT(this, "box_h", 0, function (v, _, node) {transformFunc(this, v, node, 3)})
-				CUSTOM_INT(this, "strength", 1.5, function (v, _, node) {transformFunc(this, v, node, 4)}, {"min": 0.0, "max": 10.0, "step": 0.1, "precision": 2})
+				CUSTOM_INT(this, "strength", 2.0, function (v, _, node) {transformFunc(this, v, node, 4)}, {"min": 0.0, "max": 10.0, "step": 0.1, "precision": 2})
 
 				this.onRemoved = function () {
 					for (let y in this.widgets) {
@@ -312,8 +318,8 @@ app.registerExtension({
 				// Region 1 (red sports car): left side, 400x500px starting at (100, 300)
 				// Region 2 (street vendor): right side, 350x500px starting at (560, 300)
 				this.setProperty("values", [
-					[100, 300, 400, 500, 1.5],   // Region 1 - higher strength for Flux
-					[560, 300, 350, 500, 1.5]    // Region 2 - higher strength for Flux
+					[100, 300, 400, 500, 2.0],   // Region 1 - increased strength for Flux
+					[560, 300, 350, 500, 2.0]    // Region 2 - increased strength for Flux
 				])
 
 				this.selected = false
@@ -338,7 +344,7 @@ app.registerExtension({
 
 				CUSTOM_INT(
 					this,
-					"index",
+					"region",
 					0,
 					function (v, _, node) {
 						let values = node.properties["values"]
@@ -350,7 +356,7 @@ app.registerExtension({
 							node.widgets[offset + 1].value = values[v][1]
 							node.widgets[offset + 2].value = values[v][2]
 							node.widgets[offset + 3].value = values[v][3]
-							if (!values[v][4]) {values[v][4] = 1.5}
+							if (!values[v][4]) {values[v][4] = 2.0}
 							node.widgets[offset + 4].value = values[v][4]
 						}
 					},
@@ -361,7 +367,7 @@ app.registerExtension({
 				CUSTOM_INT(this, "box_y", 0, function (v, _, node) {transformFunc(this, v, node, 1)})
 				CUSTOM_INT(this, "box_w", 0, function (v, _, node) {transformFunc(this, v, node, 2)})
 				CUSTOM_INT(this, "box_h", 0, function (v, _, node) {transformFunc(this, v, node, 3)})
-				CUSTOM_INT(this, "strength", 1.5, function (v, _, node) {transformFunc(this, v, node, 4)}, {"min": 0.0, "max": 10.0, "step": 0.1, "precision": 2})
+				CUSTOM_INT(this, "strength", 2.0, function (v, _, node) {transformFunc(this, v, node, 4)}, {"min": 0.0, "max": 10.0, "step": 0.1, "precision": 2})
 
 				this.onRemoved = function () {
 					for (let y in this.widgets) {

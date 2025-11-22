@@ -3,17 +3,17 @@
 
 from .RegionalPrompting import (
     EasyRegionSimple,
-    EasyRegionFlux
+    EasyRegionMask
 )
 
 NODE_CLASS_MAPPINGS = {
     "EasyRegionSimple": EasyRegionSimple,
-    "EasyRegionFlux": EasyRegionFlux,
+    "EasyRegionMask": EasyRegionMask,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "EasyRegionSimple": "EasyRegion (Area-Based)",
-    "EasyRegionFlux": "EasyRegion (Mask-Based)",
+    "EasyRegionMask": "EasyRegion (Mask-Based)",
 }
 
 # Export web directory for JavaScript files

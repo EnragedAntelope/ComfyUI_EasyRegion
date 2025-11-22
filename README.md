@@ -13,7 +13,7 @@ Control different parts of your image with separate prompts using visual box dra
 ## Nodes
 
 ### EasyRegion (Mask-Based)
-**For:** Flux, Chroma, SD3, SD3.5, Qwen-Image
+**For:** Models using mask-based conditioning (Flux, Chroma, SD3, SD3.5, Qwen-Image)
 
 **Inputs:**
 - `clip`: CLIP from checkpoint
@@ -22,13 +22,13 @@ Control different parts of your image with separate prompts using visual box dra
 - `background_prompt`: Scene description
 - `background_strength`: Background conditioning strength (0.5 default)
 - `region1-4_prompt`: Region-specific prompts
-- `region1-4_strength`: Per-region strength (2.5-4.5 for Flux)
+- `region1-4_strength`: Per-region strength (start with 2-4, adjust as needed)
 
-**Tips:**
-- Use CFG 1.0 with Flux Base (higher = blur)
-- Keep to 3-4 regions max for Flux/Chroma
-- **Position regions FAR APART** for best results (left/right thirds)
-- Strength 2.5-4.5 works well with bg_strength=0.5 (too high = soft/lose details)
+**General Tips:**
+- **Include spatial location in prompts** - Try adding location hints like "on left side", "right third of image", "top right corner" to your region prompts. This may help guide placement, though results vary by model.
+- Start with strength values 2.5-4.5, adjust if regions don't show or become too soft
+- Lower background_strength (0.3-0.5) makes regions more prominent
+- See "Model-Specific Tips" below for per-model guidance
 
 ### EasyRegion (Area-Based)
 **For:** SD1.5, SD2.x, SDXL
@@ -62,23 +62,40 @@ Checkpoint Loader
 ## Troubleshooting
 
 **Regions not showing:**
-- **Increase region strength** (try 3.0-5.0 for Flux)
+- **Increase region strength** (try 3.0-5.0)
 - Lower background_strength (try 0.3-0.5)
 - Check width/height match your latent exactly
 - Verify boxes aren't outside image bounds
-- **Position regions FAR APART** - overlapping regions compete
+- Try including spatial location in prompts ("left side", "right third")
 
 **Soft/blurry regions:**
 - **Lower region strength** (too high = loss of detail)
-- For Flux: 2.5-4.5 range works well with bg_strength=0.5
+- Sweet spot is usually 2.5-4.5 with bg_strength=0.5
 
 **Validation errors:**
 - Ensure width/height are multiples of 64
 - Check no regions overlap fullscreen
 
-**CFG Issues with Flux:**
-- Use CFG 1.0 for Flux Base (NO negative prompt)
-- Higher CFG = blur and artifacts
+## Model-Specific Tips
+
+### Flux (Flux.1-Dev, Flux.1-Schnell)
+- **CFG**: Use CFG 1.0 with Flux Base (NO negative prompt)
+  - Higher CFG = blur and artifacts
+- **Strength range**: 2.5-4.5 works well with bg_strength=0.5
+- **Region count**: Keep to 3-4 regions max for best results
+- **Positioning**: Works best with regions positioned far apart (e.g., left/right thirds)
+
+### SD3 / SD3.5
+- Similar to Flux - mask-based conditioning
+- Start with strength 2.5-4.5
+
+### Chroma
+- Mask-based conditioning like Flux
+- Keep to 3-4 regions max
+
+### SDXL / SD1.5
+- Use EasyRegion (Area-Based) node instead
+- Area-based conditioning doesn't use masks
 
 ## Advanced Nodes
 

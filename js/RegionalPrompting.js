@@ -318,9 +318,9 @@ app.registerExtension({
 });
 
 app.registerExtension({
-	name: "Comfy.EasyRegion.Flux",
+	name: "Comfy.EasyRegion.Mask",
 	async beforeRegisterNodeDef(nodeType, nodeData, app) {
-		if (nodeData.name === "EasyRegionFlux") {
+		if (nodeData.name === "EasyRegionMask") {
 			const onNodeCreated = nodeType.prototype.onNodeCreated;
 			nodeType.prototype.onNodeCreated = function () {
 				const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
@@ -454,7 +454,7 @@ app.registerExtension({
 		}
 	},
 	loadedGraphNode(node, _) {
-		if (node.type === "EasyRegionFlux") {
+		if (node.type === "EasyRegionMask") {
 			node.widgets[node.index].options["max"] = node.properties["values"].length-1
 
 			// Sync canvas properties with widget values on load

@@ -1,72 +1,55 @@
 # Made by Davemane42#0042 for ComfyUI
-import os
-import subprocess
-import importlib.util
-import sys
-import filecmp
-import shutil
+# Modernized for ComfyUI 0.3.71+ compatibility
+# Enhanced version with inline prompts - November 2025
 
-import __main__
-
-python = sys.executable
-
-
-extentions_folder = os.path.join(os.path.dirname(os.path.realpath(__main__.__file__)),
-                                 "web" + os.sep + "extensions" + os.sep + "Davemane42")
-javascript_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "javascript")
-
-if not os.path.exists(extentions_folder):
-    print('Making the "web\extensions\Davemane42" folder')
-    os.mkdir(extentions_folder)
-
-result = filecmp.dircmp(javascript_folder, extentions_folder)
-
-if result.left_only or result.diff_files:
-    print('Update to javascripts files detected')
-    file_list = list(result.left_only)
-    file_list.extend(x for x in result.diff_files if x not in file_list)
-
-    for file in file_list:
-        print(f'Copying {file} to extensions folder')
-        src_file = os.path.join(javascript_folder, file)
-        dst_file = os.path.join(extentions_folder, file)
-        if os.path.exists(dst_file):
-            os.remove(dst_file)
-        #print("disabled")
-        shutil.copy(src_file, dst_file)
-
-
-def is_installed(package, package_overwrite=None):
-    try:
-        spec = importlib.util.find_spec(package)
-    except ModuleNotFoundError:
-        pass
-
-    package = package_overwrite or package
-
-    if spec is None:
-        print(f"Installing {package}...")
-        command = f'"{python}" -m pip install {package}'
-  
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=os.environ)
-
-        if result.returncode != 0:
-            print(f"Couldn't install\nCommand: {command}\nError code: {result.returncode}")
-
-# is_installed("huggingface_hub")
-# is_installed("onnx")
-# is_installed("onnxruntime", "onnxruntime-gpu")
-
-from .MultiAreaConditioning import MultiAreaConditioning, ConditioningUpscale, ConditioningStretch, ConditioningDebug
+from .MultiAreaConditioning import (
+    MultiAreaConditioning,
+    MultiAreaConditioningMask,
+    ConditioningUpscale,
+    ConditioningStretch,
+    ConditioningDebug
+)
 from .MultiLatentComposite import MultiLatentComposite
-#from .ABGRemover import ABGRemover
+from .RegionalPrompting import (
+    RegionalPrompterSimple,
+    RegionalPrompterFlux
+)
 
 NODE_CLASS_MAPPINGS = {
+    # Original nodes (require external CLIP Text Encode)
     "MultiLatentComposite": MultiLatentComposite,
     "MultiAreaConditioning": MultiAreaConditioning,
+    "MultiAreaConditioningMask": MultiAreaConditioningMask,
     "ConditioningUpscale": ConditioningUpscale,
     "ConditioningStretch": ConditioningStretch,
-    #"ABGRemover": ABGRemover,
+
+    # Enhanced all-in-one nodes (inline prompts - RECOMMENDED)
+    "RegionalPrompterSimple": RegionalPrompterSimple,
+    "RegionalPrompterFlux": RegionalPrompterFlux,
 }
 
-print('\033[34mDavemane42 Custom Nodes: \033[92mLoaded\033[0m')
+# Display names for the UI
+NODE_DISPLAY_NAME_MAPPINGS = {
+    # Original nodes
+    "MultiLatentComposite": "Multi Latent Composite (Visual)",
+    "MultiAreaConditioning": "Multi Area Conditioning (SD/SDXL - Advanced)",
+    "MultiAreaConditioningMask": "Multi Area Conditioning (Flux/Chroma - Advanced)",
+    "ConditioningUpscale": "Conditioning Upscale",
+    "ConditioningStretch": "Conditioning Stretch",
+
+    # Enhanced nodes
+    "RegionalPrompterSimple": "🎨 Regional Prompter (SD/SDXL - Easy!)",
+    "RegionalPrompterFlux": "🎨 Regional Prompter (Flux/Chroma - Easy!)",
+}
+
+__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
+
+print('\033[34mDavemane42 Custom Nodes (Modernized): \033[92mLoaded\033[0m')
+print('\033[90m  📦 Original Nodes (Advanced):\033[0m')
+print('\033[90m    - Multi Area Conditioning: SD1.5, SD2.x, SDXL\033[0m')
+print('\033[90m    - Multi Area Conditioning Mask: Flux, Chroma, SD3+\033[0m')
+print('\033[90m    - Multi Latent Composite with feathering\033[0m')
+print('\033[90m    - Conditioning utilities (Upscale, Stretch)\033[0m')
+print('\033[92m  ✨ RECOMMENDED - Enhanced Easy Nodes:\033[0m')
+print('\033[92m    - Regional Prompter (SD/SDXL) - Type prompts directly!\033[0m')
+print('\033[92m    - Regional Prompter (Flux/Chroma) - Optimized for modern models!\033[0m')

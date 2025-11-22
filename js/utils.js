@@ -99,16 +99,19 @@ export function removeNodeInputs(node, indexesToRemove, offset=0) {
 	indexesToRemove.sort((a, b) => b - a);
 
 	for (let i of indexesToRemove) {
-		if (node.inputs.length <= 2) { console.log("too short"); continue } // if only 2 left
+		if (node.inputs.length <= 2) {
+			// Minimum 2 inputs required
+			continue
+		}
 		node.removeInput(i)
 		node.properties.values.splice(i-offset, 1)
 	}
 
-	const inputLenght = node.properties["values"].length-1
+	const inputLength = node.properties["values"].length-1
 
-	node.widgets[node.index].options.max = inputLenght
-	if (node.widgets[node.index].value > inputLenght) {
-		node.widgets[node.index].value = inputLenght
+	node.widgets[node.index].options.max = inputLength
+	if (node.widgets[node.index].value > inputLength) {
+		node.widgets[node.index].value = inputLength
 	}
 
 	node.onResize(node.size)
@@ -136,7 +139,7 @@ export function computeCanvasSize(node, size) {
 	let y = LiteGraph.NODE_WIDGET_HEIGHT * Math.max(node.inputs.length, node.outputs.length) + 5;
 	let freeSpace = size[1] - y;
 
-	// Compute the height of all non customtext widgets
+	// Compute the height of all non customCanvas widgets
 	let widgetHeight = 0;
 	for (let i = 0; i < node.widgets.length; i++) {
 		const w = node.widgets[i];
@@ -152,7 +155,7 @@ export function computeCanvasSize(node, size) {
 	// See how large the canvas can be
 	freeSpace -= widgetHeight;
 
-	// There isnt enough space for all the widgets, increase the size of the node
+	// There isn't enough space for all the widgets, increase the size of the node
 	if (freeSpace < MIN_SIZE) {
 		freeSpace = MIN_SIZE;
 		node.size[1] = y + widgetHeight + freeSpace;

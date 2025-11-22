@@ -117,6 +117,12 @@ function addRegionalPrompterCanvas(node, app) {
 				ctx.fillStyle = getDrawColor(k/values.length, "80")
 				ctx.fillRect(widgetX+x, widgetY+y, w, h)
 
+				// Add region label
+				ctx.fillStyle = "#ffffff";
+				ctx.font = "bold 14px Arial";
+				ctx.textAlign = "left";
+				ctx.fillText(`Region ${k+1}`, widgetX+x+5, widgetY+y+18);
+
 			}
 
 			ctx.beginPath();
@@ -197,7 +203,7 @@ function addRegionalPrompterCanvas(node, app) {
 		computeCanvasSize(node, node.size);
 	}, 100);
 
-	return { minWidth: 200, minHeight: 200, widget }
+	return { minWidth: 200, minHeight: 600, widget }  // Increased to accommodate canvas + widgets
 }
 
 app.registerExtension({
@@ -214,8 +220,8 @@ app.registerExtension({
 				// Region 1 (red sports car): left side, 200x250px starting at (50, 150)
 				// Region 2 (street vendor): right side, 180x250px starting at (280, 150)
 				this.setProperty("values", [
-					[50, 150, 200, 250, 0.8],   // Region 1
-					[280, 150, 180, 250, 0.8]    // Region 2
+					[50, 150, 200, 250, 1.5],   // Region 1 - higher strength
+					[280, 150, 180, 250, 1.5]    // Region 2 - higher strength
 				])
 
 				this.selected = false
@@ -224,6 +230,15 @@ app.registerExtension({
 
 				// Add canvas after the prompt inputs
 				addRegionalPrompterCanvas(this, app)
+
+				// Limit height of multiline prompt widgets to make node more compact
+				const promptNames = ["background_prompt", "region1_prompt", "region2_prompt", "region3_prompt", "region4_prompt"];
+				for (const w of this.widgets) {
+					if (promptNames.includes(w.name) && w.inputEl) {
+						w.inputEl.style.maxHeight = "60px";  // ~3 lines of text
+						w.inputEl.style.overflowY = "auto";
+					}
+				}
 
 				// Find where index widget should be inserted (after canvas)
 				const indexWidgetStartPos = this.widgets.length;
@@ -243,7 +258,7 @@ app.registerExtension({
 							node.widgets[offset + 1].value = values[v][1]
 							node.widgets[offset + 2].value = values[v][2]
 							node.widgets[offset + 3].value = values[v][3]
-							if (!values[v][4]) {values[v][4] = 0.8}
+							if (!values[v][4]) {values[v][4] = 1.5}
 							node.widgets[offset + 4].value = values[v][4]
 						}
 					},
@@ -254,7 +269,7 @@ app.registerExtension({
 				CUSTOM_INT(this, "box_y", 0, function (v, _, node) {transformFunc(this, v, node, 1)})
 				CUSTOM_INT(this, "box_w", 0, function (v, _, node) {transformFunc(this, v, node, 2)})
 				CUSTOM_INT(this, "box_h", 0, function (v, _, node) {transformFunc(this, v, node, 3)})
-				CUSTOM_INT(this, "strength", 0.8, function (v, _, node) {transformFunc(this, v, node, 4)}, {"min": 0.0, "max": 10.0, "step": 0.1, "precision": 2})
+				CUSTOM_INT(this, "strength", 1.5, function (v, _, node) {transformFunc(this, v, node, 4)}, {"min": 0.0, "max": 10.0, "step": 0.1, "precision": 2})
 
 				this.onRemoved = function () {
 					for (let y in this.widgets) {
@@ -297,8 +312,8 @@ app.registerExtension({
 				// Region 1 (red sports car): left side, 400x500px starting at (100, 300)
 				// Region 2 (street vendor): right side, 350x500px starting at (560, 300)
 				this.setProperty("values", [
-					[100, 300, 400, 500, 0.8],   // Region 1
-					[560, 300, 350, 500, 0.8]    // Region 2
+					[100, 300, 400, 500, 1.5],   // Region 1 - higher strength for Flux
+					[560, 300, 350, 500, 1.5]    // Region 2 - higher strength for Flux
 				])
 
 				this.selected = false
@@ -307,6 +322,15 @@ app.registerExtension({
 
 				// Add canvas after the prompt inputs
 				addRegionalPrompterCanvas(this, app)
+
+				// Limit height of multiline prompt widgets to make node more compact
+				const promptNames = ["background_prompt", "region1_prompt", "region2_prompt", "region3_prompt", "region4_prompt"];
+				for (const w of this.widgets) {
+					if (promptNames.includes(w.name) && w.inputEl) {
+						w.inputEl.style.maxHeight = "60px";  // ~3 lines of text
+						w.inputEl.style.overflowY = "auto";
+					}
+				}
 
 				// Find where index widget should be inserted (after canvas)
 				const indexWidgetStartPos = this.widgets.length;
@@ -326,7 +350,7 @@ app.registerExtension({
 							node.widgets[offset + 1].value = values[v][1]
 							node.widgets[offset + 2].value = values[v][2]
 							node.widgets[offset + 3].value = values[v][3]
-							if (!values[v][4]) {values[v][4] = 0.8}
+							if (!values[v][4]) {values[v][4] = 1.5}
 							node.widgets[offset + 4].value = values[v][4]
 						}
 					},
@@ -337,7 +361,7 @@ app.registerExtension({
 				CUSTOM_INT(this, "box_y", 0, function (v, _, node) {transformFunc(this, v, node, 1)})
 				CUSTOM_INT(this, "box_w", 0, function (v, _, node) {transformFunc(this, v, node, 2)})
 				CUSTOM_INT(this, "box_h", 0, function (v, _, node) {transformFunc(this, v, node, 3)})
-				CUSTOM_INT(this, "strength", 0.8, function (v, _, node) {transformFunc(this, v, node, 4)}, {"min": 0.0, "max": 10.0, "step": 0.1, "precision": 2})
+				CUSTOM_INT(this, "strength", 1.5, function (v, _, node) {transformFunc(this, v, node, 4)}, {"min": 0.0, "max": 10.0, "step": 0.1, "precision": 2})
 
 				this.onRemoved = function () {
 					for (let y in this.widgets) {

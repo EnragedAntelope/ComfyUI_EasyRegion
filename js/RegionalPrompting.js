@@ -156,6 +156,12 @@ function addRegionalPrompterCanvas(node, app) {
 				ctx.fillStyle = selectedColor
 				ctx.fillRect(widgetX+x+border, widgetY+y+border, w-border*2, h-border*2)
 
+				// Add label to selected region too
+				ctx.fillStyle = "#ffffff";
+				ctx.font = "bold 14px Arial";
+				ctx.textAlign = "left";
+				ctx.fillText(`Region ${index+1}`, widgetX+x+5, widgetY+y+18);
+
 				ctx.lineWidth = 1;
 				ctx.closePath();
 			} else {
@@ -246,7 +252,7 @@ app.registerExtension({
 
 				CUSTOM_INT(
 					this,
-					"index",
+					"region",
 					0,
 					function (v, _, node) {
 						let values = node.properties["values"]
@@ -258,7 +264,7 @@ app.registerExtension({
 							node.widgets[offset + 1].value = values[v][1]
 							node.widgets[offset + 2].value = values[v][2]
 							node.widgets[offset + 3].value = values[v][3]
-							if (!values[v][4]) {values[v][4] = 1.5}
+							if (!values[v][4]) {values[v][4] = 2.0}
 							node.widgets[offset + 4].value = values[v][4]
 						}
 					},
@@ -338,7 +344,7 @@ app.registerExtension({
 
 				CUSTOM_INT(
 					this,
-					"index",
+					"region",
 					0,
 					function (v, _, node) {
 						let values = node.properties["values"]
@@ -350,7 +356,7 @@ app.registerExtension({
 							node.widgets[offset + 1].value = values[v][1]
 							node.widgets[offset + 2].value = values[v][2]
 							node.widgets[offset + 3].value = values[v][3]
-							if (!values[v][4]) {values[v][4] = 1.5}
+							if (!values[v][4]) {values[v][4] = 2.0}
 							node.widgets[offset + 4].value = values[v][4]
 						}
 					},

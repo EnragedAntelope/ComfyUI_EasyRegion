@@ -126,15 +126,15 @@ These require external CLIP Text Encode nodes but offer more flexibility.
 
 ## 🎯 Model Compatibility
 
-| Model Type | Node to Use | Status |
-|------------|-------------|--------|
-| **Stable Diffusion 1.5** | 🎨 Regional Prompter (SD/SDXL) | ✅ Fully Supported |
-| **Stable Diffusion 2.x** | 🎨 Regional Prompter (SD/SDXL) | ✅ Fully Supported |
-| **SDXL** | 🎨 Regional Prompter (SD/SDXL) | ✅ Fully Supported |
-| **Flux** (all variants) | 🎨 Regional Prompter (Flux/Chroma) | ✅ Fully Supported & Optimized |
-| **Chroma** (Radiance, etc.) | 🎨 Regional Prompter (Flux/Chroma) | ✅ Fully Supported |
-| **SD3 / SD3.5** | 🎨 Regional Prompter (Flux/Chroma) | ✅ Fully Supported |
-| **Qwen-Image** | 🎨 Regional Prompter (Flux/Chroma) | 🟡 Experimental (untested) |
+| Model Type | Node to Use | Status | Notes |
+|------------|-------------|--------|-------|
+| **Stable Diffusion 1.5** | 🎨 Regional Prompter (SD/SDXL) | ✅ Fully Supported | No region limit |
+| **Stable Diffusion 2.x** | 🎨 Regional Prompter (SD/SDXL) | ✅ Fully Supported | No region limit |
+| **SDXL** | 🎨 Regional Prompter (SD/SDXL) | ✅ Fully Supported | No region limit |
+| **Flux** (all variants) | 🎨 Regional Prompter (Flux/Chroma, etc.) | ✅ Fully Supported & Optimized | 3-4 regions max recommended |
+| **Chroma** (Radiance, etc.) | 🎨 Regional Prompter (Flux/Chroma, etc.) | ✅ Architecture Supported | Likely 3-4 region limit (untested) |
+| **SD3 / SD3.5** | 🎨 Regional Prompter (Flux/Chroma, etc.) | ✅ Architecture Supported | No known region limit |
+| **Qwen-Image** | 🎨 Regional Prompter (Flux/Chroma, etc.) | 🟡 Experimental | Try it and report results! |
 
 ---
 
@@ -176,10 +176,15 @@ When you add a Regional Prompter node, you'll see:
 ### Tips for Best Results
 
 #### For Flux Users:
-- ✅ **Enable "Flux Optimize"** (it's on by default) - This uses special mask strength (0.8) that works better than full strength
+- ✅ **Keep "Soften Masks" ON** (it's on by default) - Uses 0.8 strength that works better than full strength
 - ✅ **Use 3-4 regions maximum** - More regions = quality degradation
 - ✅ **Increase CFG to 5-7** - Flux needs higher guidance for regional control
 - ✅ **Draw larger boxes** - Bigger regions = better control
+
+#### For Flux-Based Models (Chroma, etc.):
+- ✅ **Keep "Soften Masks" ON** - Works well with Flux-based architectures
+- ⚠️ **Likely 3-4 region limit** - Chroma is based on Flux, may have same limitations (untested)
+- ✅ **Start with Flux settings** - Increase CFG to 5-7, try and adjust
 
 #### For SDXL Users:
 - ✅ **Align to 64px grid** - Matches latent space boundaries
@@ -247,8 +252,11 @@ Load Checkpoint → CLIP
 - ✅ **KEEP ON (default):** Softer region edges, better blending (0.8 strength + gentle feather)
 - ❌ **Turn OFF only if:** You want sharp, harsh region boundaries (1.0 strength, no feather)
 - **Why it's better:** Research shows softer masks (0.8) produce better results than full-strength (1.0) for Flux
-- **For Chroma/SD3:** Try it ON first (default), disable only if you prefer sharper edges
+- **For other models:** Works well with mask-based models - try it ON first, disable only if you prefer sharper edges
 - **What feathering does:** Gentle edge blending (5-8 pixels) to avoid harsh boundaries - you can disable by turning this toggle OFF
+
+**💡 Pro Tip - Auto Width/Height:**
+You can **connect** the width/height outputs from your **Empty Latent Image** node directly to this node's width/height inputs! No need to type them manually - they'll stay in sync automatically.
 
 ---
 
@@ -492,9 +500,10 @@ Load Checkpoint
 
 **Key Points:**
 - ✅ Width/height in the Regional Prompter should match your Empty Latent Image size
+- 💡 **PRO TIP:** Connect width/height outputs from Empty Latent Image → Regional Prompter for auto-sync!
 - ✅ No latent input needed on the Regional Prompter - it just needs the numbers!
 - ✅ The node outputs CONDITIONING, not an image - connect to KSampler's positive input
-- ✅ Keep "Soften Masks" ON for better results (especially Flux)
+- ✅ Keep "Soften Masks" ON for better results (especially Flux and Flux-based models)
 
 ### Advanced Mode Workflow (For Power Users)
 When you need shared CLIP encodings or more control:

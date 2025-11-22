@@ -197,7 +197,7 @@ class RegionalPrompterFlux:
                 }),
                 "soften_masks": ("BOOLEAN", {
                     "default": True,
-                    "tooltip": "✅ RECOMMENDED: Softer masks (0.8 strength + gentle edge blend) work better than harsh full-strength (1.0) masks. Confirmed for Flux. Try it first for Chroma/SD3, disable if you prefer sharper region edges."
+                    "tooltip": "✅ RECOMMENDED: Softer masks (0.8 strength + gentle edge blend) work better than harsh full-strength (1.0) masks. Confirmed better for Flux, works well with other mask-based models. Disable if you prefer sharper region edges."
                 }),
             },
             "optional": {
@@ -209,12 +209,12 @@ class RegionalPrompterFlux:
                 "region3_prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
-                    "tooltip": "Prompt for third region (optional - note: Flux works best with 3-4 regions max)"
+                    "tooltip": "Prompt for third region (optional - note: Flux and similar models work best with 3-4 regions max)"
                 }),
                 "region4_prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
-                    "tooltip": "Prompt for fourth region (optional - note: Flux works best with 3-4 regions max)"
+                    "tooltip": "Prompt for fourth region (optional - note: Flux and similar models work best with 3-4 regions max)"
                 }),
             },
             "hidden": {"extra_pnginfo": "EXTRA_PNGINFO", "unique_id": "UNIQUE_ID"},
@@ -225,7 +225,7 @@ class RegionalPrompterFlux:
     FUNCTION = "encode_regions_flux"
     CATEGORY = "Davemane42/Enhanced"
     DESCRIPTION = """🎨 ALL-IN-ONE Mask-Based Regional Prompting (EASY MODE!)
-For: Flux, Chroma, SD3, SD3.5
+For: Flux, Chroma, SD3, and other mask-based models
 
 Just type your prompts and draw boxes - that's it!
 
@@ -235,10 +235,11 @@ Just type your prompts and draw boxes - that's it!
 ✅ Up to 4 regions + background
 ✅ Visual box drawing interface
 ✅ Comes with example prompts pre-filled!
+✅ Width/height can be connected from Empty Latent Image node!
 
 How to use:
 1. Connect CLIP from your checkpoint
-2. Set your output width/height (e.g., 1024x1024)
+2. Set output width/height (or connect from Empty Latent Image!)
 3. Review example prompts (or replace with your own)
 4. Draw boxes on canvas for each region
 5. Leave "Soften Masks" ON (recommended for all models)
@@ -248,13 +249,15 @@ How to use:
 • ✅ KEEP ON (default): Softer region edges, better blending (0.8 strength + gentle feather)
 • ❌ Turn OFF only if: You want sharp, harsh region boundaries (1.0 strength, no feather)
 • Confirmed better results with Flux when ON
-• Try it first for Chroma/SD3, disable only if you dislike the effect
+• Works well with other mask-based models - try it first!
 
 Model-Specific Tips:
-• FLUX: Use 3-4 regions max, increase CFG to 5-7, draw larger regions
-• CHROMA/SD3: No region limit, standard CFG values work fine
+• FLUX: Use 3-4 regions max (quality degrades with more), increase CFG to 5-7
+• FLUX-BASED (Chroma, etc.): Likely 3-4 region limit too (untested), try and see!
+• SD3/SD3.5: No known region limit, standard CFG values
+• QWEN-IMAGE: Experimental - try mask-based conditioning and report results!
 
-Compatible: Flux (all variants), Chroma, SD3, SD3.5"""
+Compatible: Flux (all variants), Chroma, SD3, SD3.5, and other mask-based models"""
 
     def encode_regions_flux(self, clip, width, height, background_prompt, region1_prompt,
                            soften_masks, extra_pnginfo, unique_id,

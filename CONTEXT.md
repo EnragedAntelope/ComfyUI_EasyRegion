@@ -17,16 +17,20 @@
 - **Strength:** Full strength (1.0) works perfectly
 - **Limitations:** Rectangular regions only, no complex shapes
 
-#### Mask-Based Conditioning (Flux/Chroma/SD3)
-- **Models:** Flux (all variants), Chroma (Chroma1-Radiance, etc.), SD3/SD3.5
+#### Mask-Based Conditioning (Flux, Chroma, SD3, etc.)
+- **Models:** Flux (all variants), Chroma (Chroma1-Radiance, etc.), SD3/SD3.5, and other mask-based models
 - **Technology:** Binary masks created from drawn boxes
 - **Critical Discovery:** Flux requires **0.7-0.85 mask strength** (NOT 1.0!)
   - Full strength (1.0) creates harsh, over-defined regions
   - Research shows 180-220 out of 255 (0.7-0.85 normalized) optimal
   - Implementation uses 0.8 as sweet spot
+  - **Other Models:** Works well with mask-based models in general, user testing needed
 - **Feathering:** 40-60px (5-8 latent pixels) gentle feathering improves blending
-- **Region Limit:** Flux works best with 3-4 regions maximum
-- **CFG Guidance:** Increase to 5-7 (vs typical 3-5) for better regional control
+  - Tied to `soften_masks` toggle - user can disable for sharp edges
+- **Region Limit (Flux):** Flux works best with 3-4 regions maximum (confirmed)
+- **Region Limit (Chroma):** Likely 3-4 regions too since Chroma is Flux-based (UNTESTED - needs user confirmation)
+- **Region Limit (SD3/SD3.5):** No known limit
+- **CFG Guidance (Flux):** Increase to 5-7 (vs typical 3-5) for better regional control
 
 #### CLIP Encoding (Inline Prompts)
 - **Method:** `clip.tokenize(prompt)` → `clip.encode_from_tokens(tokens, return_pooled=True)`
@@ -59,7 +63,13 @@
 #### Qwen-Image Compatibility
 - **Status:** Experimental/Unknown
 - **Type:** Generation model (not edit variant)
-- **Theory:** Should work with standard CONDITIONING if it follows ComfyUI conventions
+- **Theory:** Should work with mask-based conditioning (RegionalPrompterFlux) if it follows ComfyUI conventions
+- **Guidance:** "Try it and see what breaks" - no specific settings known
+- **Recommendation:**
+  - Start with mask-based node (RegionalPrompterFlux)
+  - Keep soften_masks ON
+  - Try standard settings and adjust based on results
+  - Report findings to help others!
 - **Blocker:** No test workflows or confirmed compatibility reports
 - **Future:** Needs actual testing with Qwen-Image checkpoints
 
@@ -151,8 +161,9 @@ except Exception as e:
 2. **✅ FIXED: Soften Masks Clarity**
    - **Was:** Parameter named `flux_optimize` (confusing since node works for Chroma/SD3 too)
    - **Now:** Renamed to `soften_masks` with explicit tooltip guidance
-   - **Tooltip:** "✅ RECOMMENDED: Softer masks (0.8 strength + gentle edge blend) work better than harsh full-strength (1.0) masks. Confirmed for Flux. Try it first for Chroma/SD3, disable if you prefer sharper region edges."
+   - **Tooltip:** "✅ RECOMMENDED: Softer masks (0.8 strength + gentle edge blend) work better than harsh full-strength (1.0) masks. Confirmed better for Flux, works well with other mask-based models. Disable if you prefer sharper region edges."
    - **Node Description:** Dedicated "💡 IMPORTANT" section explaining when to keep ON vs turn OFF
+   - **Model References:** Changed from "Try it first for Chroma/SD3" to "Works well with other models - try it first!" (more general)
    - **Impact:** Users understand it's a softness toggle (not Flux-specific magic), know when to enable/disable
 
 3. **✅ FIXED: Feathering Concerns**
@@ -173,9 +184,11 @@ except Exception as e:
 5. **✅ FIXED: Workflow Setup Confusion**
    - **Question:** Does it need a latent input?
    - **Answer:** NO! Only needs CLIP input + width/height parameters (just numbers)
+   - **Pro Tip:** Width/height inputs accept connections - users can drag from Empty Latent Image outputs!
    - **Clarification:** Node outputs CONDITIONING (connects to KSampler positive input)
    - **README:** Added detailed workflow diagram showing exact connections
-   - **Impact:** Users understand the node flow correctly
+   - **Node Description:** Added tip about connecting from Empty Latent Image
+   - **Impact:** Users understand the node flow correctly AND can auto-sync dimensions
 
 6. **Dynamic Latent Sizing:**
    - **Question:** Does it work with any input size?
@@ -203,10 +216,13 @@ except Exception as e:
 5. ❌ **Don't use "Flux"** as shorthand for mask-based conditioning
 
 **Examples:**
-- ✅ Good: "Mask-based node for Flux, Chroma, SD3"
+- ✅ Good: "Mask-based node for Flux, Chroma, SD3, etc."
 - ❌ Bad: "Flux node" (implies Flux-only)
-- ✅ Good: "Soften Masks (confirmed better for Flux, try for others)"
-- ❌ Bad: "Flux Optimize" (confusing for Chroma/SD3 users)
+- ✅ Good: "Soften Masks (confirmed better for Flux, works well with other models)"
+- ❌ Bad: "Flux Optimize" (confusing for other model users)
+- ✅ Good: "3-4 region limit for Flux" (specific model reference)
+- ⚠️ Uncertain: "Chroma likely has 3-4 region limit too (untested)" (honest about uncertainty)
+- ✅ Good: "Flux and similar models" (acknowledges Flux-based architecture)
 
 ### Audit Checklist
 - [x] Node names clarified (not Flux-exclusive)

@@ -135,7 +135,7 @@ Compatible: SD1.5, SD2.x, SDXL"""
             try:
                 x, y = int(values[i-1][0]), int(values[i-1][1])
                 w, h = int(values[i-1][2]), int(values[i-1][3])
-                strength = float(values[i-1][4]) if len(values[i-1]) > 4 else 1.0
+                strength = float(values[i-1][4]) if len(values[i-1]) > 4 else 2.0
             except (IndexError, ValueError, TypeError):
                 continue
 
@@ -239,9 +239,9 @@ Quick Start:
 2. Set width/height to match your latent exactly
 3. Type prompts (background + regions)
 4. Draw/adjust boxes on canvas
-5. Use CFG 1.0-1.5 for Flux
+5. Use CFG 5-7 for Flux regional prompting (higher than standard 1.0-3.5)
 
-Tips: Increase strength (1.5-3.0) if regions don't show. 3-4 regions max for Flux."""
+Tips: Increase strength (2.0-4.0) if regions don't show. 3-4 regions max for Flux."""
 
     def encode_regions_flux(self, clip, width, height, soften_masks, background_prompt, region1_prompt,
                            extra_pnginfo, unique_id,
@@ -252,8 +252,8 @@ Tips: Increase strength (1.5-3.0) if regions don't show. 3-4 regions max for Flu
         # Region 1 (red sports car): left side, 400x500px starting at (100, 300)
         # Region 2 (street vendor): right side, 350x500px starting at (560, 300)
         values = [
-            [100, 300, 400, 500, 1.0],   # Region 1
-            [560, 300, 350, 500, 1.0]    # Region 2
+            [100, 300, 400, 500, 2.0],   # Region 1 - increased strength
+            [560, 300, 350, 500, 2.0]    # Region 2 - increased strength
         ]
 
         # Get region data from UI (overrides defaults if workflow saved)
@@ -328,7 +328,7 @@ Tips: Increase strength (1.5-3.0) if regions don't show. 3-4 regions max for Flu
             try:
                 x, y = int(values[i-1][0]), int(values[i-1][1])
                 w, h = int(values[i-1][2]), int(values[i-1][3])
-                strength = float(values[i-1][4]) if len(values[i-1]) > 4 else 1.0
+                strength = float(values[i-1][4]) if len(values[i-1]) > 4 else 2.0
             except (IndexError, ValueError, TypeError):
                 continue
 
@@ -400,12 +400,12 @@ Tips: Increase strength (1.5-3.0) if regions don't show. 3-4 regions max for Flu
             for t in encoded_conditionings[i]:
                 n = [t[0], t[1].copy()]
                 n[1]['mask'] = mask
-                n[1]['strength'] = max(0.0, min(10.0, strength))
+                n[1]['mask_strength'] = max(0.0, min(10.0, strength))  # FIXED: was 'strength', should be 'mask_strength'
                 n[1]['set_area_to_bounds'] = False
                 combined_conditioning.append(n)
 
         print(f"   ✅ Generated {len(combined_conditioning)} conditioning blocks")
-        print(f"   💡 Tip: Flux works best at CFG 1.0-3.5 with regional prompting\n")
+        print(f"   💡 Tip: For Flux regional prompting, use CFG 5-7 (higher than standard 1.0-3.5)\n")
 
         return (combined_conditioning,)
 

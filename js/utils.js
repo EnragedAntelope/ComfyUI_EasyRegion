@@ -41,8 +41,11 @@ export function recursiveLinkUpstream(node, type, depth, index=null) {
 export function transformFunc(widget, value, node, index) {
 	const s = widget.options.step / 10;
 	widget.value = Math.round(value / s) * s;
-	node.properties["values"][node.widgets[node.index].value][index] = widget.value
-	if (node.widgets_values) { 
+	// Convert 1-based region selector (Region 1, Region 2...) to 0-based array index
+	const regionSelectorValue = node.widgets[node.index].value;
+	const arrayIndex = regionSelectorValue - 1;  // Region 1 → index 0, Region 2 → index 1, etc.
+	node.properties["values"][arrayIndex][index] = widget.value
+	if (node.widgets_values) {
 		node.widgets_values[2] = node.properties["values"].join()
 	}
 }

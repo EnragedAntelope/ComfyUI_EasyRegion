@@ -1,9 +1,23 @@
 # Davemane42's Regional Conditioning Nodes for ComfyUI
 
 **Updated: November 22, 2025**
-**Version: 3.0** - Modernized for ComfyUI 0.3.71+ with Flux/Chroma support
+**Version: 3.1** - Enhanced with ALL-IN-ONE nodes featuring inline prompts!
 
 Visual interface for regional conditioning in ComfyUI. Draw boxes on a canvas and assign different prompts to each region - perfect for precise control over image composition.
+
+## 🌟 NEW! Enhanced Easy-Mode Nodes (RECOMMENDED)
+
+**🎨 Regional Prompter (SD/SDXL - Easy!)** and **🎨 Regional Prompter (Flux/Chroma - Easy!)**
+
+✅ **Type prompts directly in the node** - No external CLIP Text Encode nodes needed!
+✅ **Simple workflow:** Checkpoint → CLIP → Regional Prompter → Sampler
+✅ **Same visual box drawing** you love
+✅ **Flux-optimized** with perfect mask strength (0.8) and feathering
+✅ **Up to 4 regions + background**
+
+**Perfect for beginners and quick workflows!**
+
+---
 
 ## ✨ Features
 
@@ -64,20 +78,91 @@ git clone https://github.com/Davemane42/ComfyUI_RegionalConditioning
 
 ## 🚀 Quick Start Example
 
-### Basic Usage: Mountain Scene with Tiger and Berry Bush
+### 🌟 NEW! Easy Mode (Recommended)
 
-**Workflow:**
+**Using Regional Prompter (inline prompts):**
+1. Load your checkpoint
+2. Add `🎨 Regional Prompter (SD/SDXL)` OR `🎨 Regional Prompter (Flux/Chroma)`
+3. Connect CLIP from checkpoint to the Regional Prompter
+4. Type in **Background Prompt:** "photo of a mountain landscape"
+5. Draw a box on canvas, type in **Region 1 Prompt:** "majestic tiger"
+6. Draw another box, type in **Region 2 Prompt:** "berry bush"
+7. Connect conditioning output to your sampler
+8. Done! 🎉
+
+**That's it!** No external CLIP Text Encode nodes, no complex wiring!
+
+### Advanced Mode (Original Nodes)
+
+**Using MultiAreaConditioning (requires external CLIP Text Encode):**
 1. Add `MultiAreaConditioning` (for SDXL) OR `MultiAreaConditioningMask` (for Flux)
-2. Connect `conditioning0` → "photo of a mountain landscape" (background)
-3. Draw a box, connect `conditioning1` → "majestic tiger"
-4. Draw another box, connect `conditioning2` → "berry bush"
+2. Connect `conditioning0` → CLIPTextEncode("photo of a mountain landscape")
+3. Draw a box, connect `conditioning1` → CLIPTextEncode("majestic tiger")
+4. Draw another box, connect `conditioning2` → CLIPTextEncode("berry bush")
 5. Connect output to your sampler
 
-**Result:** A mountain landscape with a tiger and berry bush positioned exactly where you drew the boxes!
+**Both methods give the same result:** A mountain landscape with a tiger and berry bush positioned exactly where you drew the boxes!
 
 ---
 
 ## 📚 Node Reference
+
+### 🌟 Regional Prompter (SD/SDXL - Easy!) **← RECOMMENDED**
+
+**The easiest way to use regional conditioning with SDXL!**
+
+**Inputs:**
+- `clip` - CLIP model from your checkpoint
+- `background_prompt` - Text box for overall scene (multiline)
+- `region1_prompt` - Text box for first region (multiline)
+- `region2_prompt` - Text box for second region (optional)
+- `region3_prompt` - Text box for third region (optional)
+- `region4_prompt` - Text box for fourth region (optional)
+
+**Outputs:**
+- `conditioning` - Ready to connect to sampler!
+- `width`, `height` - Canvas dimensions
+
+**How it works:**
+Just type your prompts and draw boxes - the node handles CLIP encoding internally!
+
+**Perfect for:** Quick workflows, beginners, anyone who wants simplicity
+
+---
+
+### 🌟 Regional Prompter (Flux/Chroma - Easy!) **← RECOMMENDED FOR FLUX**
+
+**The easiest way to use regional conditioning with Flux!**
+
+**Inputs:**
+- `clip` - CLIP model from your checkpoint
+- `width`, `height` - Output dimensions
+- `background_prompt` - Text box for overall scene (multiline)
+- `region1_prompt` - Text box for first region (multiline)
+- `region2_prompt` - Text box for second region (optional)
+- `region3_prompt` - Text box for third region (optional)
+- `region4_prompt` - Text box for fourth region (optional, limit 3-4 for best results)
+- `flux_optimize` - Enable Flux optimizations (default: ON)
+
+**Output:**
+- `conditioning` - Ready to connect to sampler!
+
+**Flux Optimizations:**
+- ✅ Softened mask strength (0.8 vs 1.0) for better blending
+- ✅ Gentle feathering at region edges
+- ✅ Automatic region limiting (warns if >4 regions)
+
+**Tips:**
+- Use 3-4 regions maximum for reliable results
+- Enable Flux Optimize for best quality
+- Increase CFG to 5-7 (vs typical 3-5)
+- Draw larger regions for better control
+
+**Perfect for:** Flux workflows, Chroma, SD3, modern models
+
+---
+
+## 📚 Advanced Node Reference
 
 ### MultiAreaConditioning (Area-based for SD/SDXL)
 

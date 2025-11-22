@@ -211,6 +211,7 @@ class MultiAreaConditioningMask:
                 "conditioning1": ("CONDITIONING", {"tooltip": "Conditioning for first region/box"}),
                 "width": ("INT", {"default": 1024, "min": 64, "max": MAX_RESOLUTION, "step": 64, "tooltip": "Output width in pixels"}),
                 "height": ("INT", {"default": 1024, "min": 64, "max": MAX_RESOLUTION, "step": 64, "tooltip": "Output height in pixels"}),
+                "mask_strength": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 1.0, "step": 0.05, "tooltip": "Mask strength (0.7-0.85 recommended for Flux, 1.0 for others)"}),
             },
             "hidden": {"extra_pnginfo": "EXTRA_PNGINFO", "unique_id": "UNIQUE_ID"},
         }
@@ -233,7 +234,7 @@ Compatible Models: Flux, Chroma, SD3, SD3.5, and any model supporting Conditioni
 
 Note: Boxes are automatically converted to grayscale masks behind the scenes."""
 
-    def apply_regional_conditioning_mask(self, width, height, extra_pnginfo, unique_id, **kwargs):
+    def apply_regional_conditioning_mask(self, width, height, mask_strength, extra_pnginfo, unique_id, **kwargs):
         """Apply mask-based conditioning by converting boxes to masks."""
 
         values = []
@@ -363,8 +364,10 @@ Note: Boxes are automatically converted to grayscale masks behind the scenes."""
             x_end = min(x_latent + w_latent, latent_width)
             y_end = min(y_latent + h_latent, latent_height)
 
-            # Fill the region
-            mask[0, y_latent:y_end, x_latent:x_end] = 1.0
+            # Fill the region with specified mask strength
+            # For Flux: 0.7-0.85 recommended (softer masks work better)
+            # For SD/SDXL: 1.0 (full strength)
+            mask[0, y_latent:y_end, x_latent:x_end] = mask_strength
 
             # Parse strength with validation
             try:

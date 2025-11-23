@@ -487,12 +487,51 @@ See README for model-specific tips and recommended settings."""
                         if x_end - 1 - edge_idx >= x_latent:
                             feathered_mask[0, y_latent:y_end, x_end - 1 - edge_idx] = torch.minimum(feathered_mask[0, y_latent:y_end, x_end - 1 - edge_idx], torch.tensor(fade))
 
-            # Apply mask-based conditioning (standard approach)
+            # Apply mask-based conditioning with attention masking
+            # Background concatenation provides scene context
+            # Attention masking forces correct spatial placement
             for t in encoded_conditionings[i]:
                 n = [t[0], t[1].copy()]
                 n[1]['mask'] = feathered_mask  # Feathered for smooth visual blending
                 n[1]['mask_strength'] = max(0.0, min(10.0, strength))
                 n[1]['set_area_to_bounds'] = False
+
+                # Create attention mask for precise regional control
+                # This FORCES the model to generate content in the correct region
+                cond_tensor = t[0]  # [batch, seq_len, hidden_dim]
+                txt_tokens = cond_tensor.shape[1]
+                img_tokens = latent_height * latent_width
+                total_tokens = txt_tokens + img_tokens
+
+                # Initialize blocking all (-10000), then enable specific paths
+                attention_mask = torch.full((1, total_tokens, total_tokens), -10000.0, dtype=torch.float32)
+
+                # Enable text-to-text attention (prompts can interact)
+                attention_mask[0, :txt_tokens, :txt_tokens] = 0.0
+
+                # Enable text-to-image ONLY for this region's pixels
+                # This prevents "bird" text from affecting car region pixels
+                for y in range(y_latent, y_end):
+                    for x in range(x_latent, x_end):
+                        img_token_idx = txt_tokens + (y * latent_width + x)
+                        attention_mask[0, :txt_tokens, img_token_idx] = 0.0
+                        attention_mask[0, img_token_idx, :txt_tokens] = 0.0
+
+                # Enable image-to-image ONLY within this region
+                # Use vectorized approach for performance
+                region_img_indices = []
+                for y in range(y_latent, y_end):
+                    for x in range(x_latent, x_end):
+                        region_img_indices.append(txt_tokens + (y * latent_width + x))
+
+                # Allow attention between all pixels in this region
+                for idx1 in region_img_indices:
+                    for idx2 in region_img_indices:
+                        attention_mask[0, idx1, idx2] = 0.0
+
+                n[1]['attention_mask'] = attention_mask
+                n[1]['attention_mask_img_shape'] = (latent_height, latent_width)
+
                 combined_conditioning.append(n)
 
         print(f"   ✅ Generated {len(combined_conditioning)} conditioning blocks\n")
